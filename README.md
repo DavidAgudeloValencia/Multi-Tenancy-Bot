@@ -105,7 +105,7 @@ scripts/                # generate_sample_kb, ingest, ask, diagnose_meta
 static/index.html       # Panel web de administración
 knowledge/              # PDFs de la base de conocimiento (por agente)
 tests/                  # Suite pytest
-Dockerfile · docker-compose.yml · .github/workflows/ci.yml
+Dockerfile · docker-compose.yml · railway.json · .github/workflows/ci.yml
 DESIGN.md               # Sistema de diseño (tokens, modo oscuro)
 ```
 
@@ -156,6 +156,41 @@ Panel web: `GET /admin/`.
 - Escritura atómica de `tenants.json`; sin CORS abierto; rate limiting del webhook (300 req/min).
 
 Ver `DESIGN.md` para el sistema de diseño (tema oscuro, tokens, componentes).
+
+## Despliegue en Railway
+
+El repo ya incluye `railway.json` y el `Dockerfile` escucha en `$PORT`
+(Railway lo inyecta). Pasos en [Railway.app](https://railway.app):
+
+1. **New Project → Deploy from GitHub repo** y selecciona este repositorio.
+   Railway detecta el `Dockerfile` automáticamente.
+2. **Añade un plugin Redis** (New → Database → Redis). Su URL se expone como
+   `${{Redis.REDIS_URL}}`.
+3. **Añade un volumen** (New → Volume) montado en **`/app/data`** (persiste
+   ChromaDB, `tenants.json` y los PDFs subidos).
+4. **Variables de entorno** (en el servicio API):
+
+   | Variable | Valor |
+   |---|---|
+   | `REDIS_URL` | `${{Redis.REDIS_URL}}` (Referencia al plugin) |
+   | `SESSION_STORE` | `redis` |
+   | `CHROMA_PERSIST_DIR` | `/app/data/chroma` |
+   | `KNOWLEDGE_DIR` | `/app/data/knowledge` |
+   | `TENANTS_FILE` | `/app/data/tenants.json` |
+   | `OPENAI_API_KEY` | tu clave |
+   | `WHATSAPP_*` | token/número de Meta |
+   | `WEBHOOK_APP_SECRET` | App Secret de Meta |
+   | `ADMIN_API_KEY` | clave del panel (genera una larga) |
+
+5. **Network → Generate Domain** → te da una URL pública
+   `https://<servicio>.railway.app`. Usa
+   `https://<servicio>.railway.app/webhook` como **Callback URL** en Meta.
+6. **Configuración inicial de agentes y conocimiento:**
+   - Crea los agentes desde el panel (`/admin`) o con `tenants.json`.
+   - Sube sus PDFs por el panel y ejecuta **Re-ingestar** (o en la consola de
+     Railway: `python -m scripts.ingest --tenant <id> --reset`).
+
+> El webhook se sirve en la raíz de la app (`/webhook`); el healthcheck usa `/`.
 
 ## Puesta en producción
 
