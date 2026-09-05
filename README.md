@@ -168,4 +168,6 @@ Ver `DESIGN.md` para el sistema de diseño (tema oscuro, tokens, componentes).
 
 ## Licencia
 
-_Proyecto privado — uso interno. No redistribuir sin autorización._
+Proyecto de **uso interno con licencia propietaria** (todos los derechos
+reservados). No se permite copiar, modificar, distribuir ni usar con fines
+comerciales sin autorización escrita del titular. Ver [LICENSE](LICENSE).
