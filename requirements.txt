@@ -1,0 +1,31 @@
+# ============================================================
+# MultiBot — Dependencias
+# ============================================================
+# --- Web (Fase 2) ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+pydantic-settings==2.7.1
+python-dotenv==1.0.1
+requests==2.32.3        # Envío de mensajes a la Graph API (Fase 5)
+httpx==0.28.1           # Cliente HTTP para las pruebas (TestClient)
+python-multipart==0.0.20  # Subida de PDFs (UploadFile/File)
+pytest==8.3.4           # Pruebas automáticas
+pytest-asyncio==0.25.0  # Soporte de pruebas async (pytest)
+
+# --- IA / RAG (Fase 3) ---
+langchain==0.3.14
+langchain-community==0.3.14
+langchain-openai==0.3.14
+langchain-chroma==0.2.2
+langchain-text-splitters==0.3.4
+openai==1.68.2
+chromadb==0.5.23
+pypdf==5.1.0            # Lectura de PDFs (PyPDFLoader)
+tiktoken==0.8.0         # División por tokens (text splitter)
+
+# --- Utilidades de desarrollo ---
+reportlab==4.2.5        # Solo para generar los PDFs de ejemplo (scripts/)
+
+# --- Estado de sesión (Fase 4) ---
+redis==5.2.1            # Sesiones de conversación (Redis en producción)

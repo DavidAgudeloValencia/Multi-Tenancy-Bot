@@ -1,0 +1,27 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# --- Entorno / secretos ---
+.env
+
+# --- Datos generados ---
+data/
+
+# --- IDE ---
+.idea/
+.vscode/
+*.swp
+
+# --- Sistema operativo ---
+Thumbs.db
+.DS_Store
+
+# --- Logs / temporales ---
+*.log
+*.tmp
+

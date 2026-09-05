@@ -1,0 +1,54 @@
+# ============================================================
+# MultiBot — Orquestación (Fase 6)
+# Levanta: API (FastAPI) + Redis (sesiones) + ChromaDB (persistente)
+# ============================================================
+# Uso:
+#   docker compose up -d --build          # levantar todo
+#   docker compose run --rm api python -m scripts.ingest --reset   # ingestar PDFs
+#   docker compose logs -f api            # ver logs
+# ============================================================
+
+services:
+  api:
+    build: .
+    container_name: multibot-api
+    ports:
+      # Puerto del host parametrizable (HOST_PORT=8002 en pruebas locales).
+      - "${HOST_PORT:-8000}:8000"
+    # Todas las variables de .env se inyectan como variables de entorno.
+    env_file: .env
+    environment:
+      # En producción las sesiones viven en Redis (no en memoria).
+      SESSION_STORE: redis
+      REDIS_URL: redis://redis:6379/0
+      # Rutas dentro del contenedor (montadas como volúmenes abajo).
+      CHROMA_PERSIST_DIR: /app/data/chroma
+      KNOWLEDGE_DIR: /app/knowledge
+    volumes:
+      # Datos persistentes del servicio: ChromaDB + registro de tenants.
+      - ./data:/app/data
+      # PDFs de los agentes (solo lectura).
+      - ./knowledge:/app/knowledge:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: multibot-redis
+    # appendonly: las sesiones sobreviven reinicios del contenedor.
+    command: ["redis-server", "--appendonly", "yes"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped

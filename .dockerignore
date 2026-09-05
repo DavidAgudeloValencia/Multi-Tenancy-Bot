@@ -1,0 +1,12 @@
+# Excluye del contexto de build: peso, secretos y archivos generados.
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.git/
+.env
+data/
+tests/
+*.md
+.gitignore

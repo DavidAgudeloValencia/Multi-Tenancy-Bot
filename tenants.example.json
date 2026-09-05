@@ -1,0 +1,47 @@
+{
+  "_comentario": "Registro de agentes (tenants) de ejemplo. Copia a data/tenants.json y ajusta. data/ NO se sube al repositorio: contiene datos reales y credenciales.",
+  "tenants": [
+    {
+      "id": "agente-ejemplo",
+      "name": "Agente de Ejemplo - Asesor de Seguros",
+      "phone_number_id": "123456789012345",
+      "whatsapp_number": "573001234567",
+      "access_token": "",
+      "advisor_notify_whatsapp": "573001234567",
+      "collection": "",
+      "knowledge_dir": "",
+      "enabled": true,
+      "greeting": "",
+      "fallback_answer": "",
+      "handoff_reply": "",
+      "lead_done_reply": "",
+      "human_paused_reply": "",
+      "openai_model": "",
+      "rag_temperature": null,
+      "rag_top_k": null,
+      "rag_score_threshold": null,
+      "lead_questions": {}
+    },
+    {
+      "id": "agente-segundo",
+      "name": "Segundo Agente - Sucursal Medellin",
+      "phone_number_id": "987654321098765",
+      "whatsapp_number": "574001234567",
+      "access_token": "",
+      "advisor_notify_whatsapp": "574001234567",
+      "collection": "",
+      "knowledge_dir": "",
+      "enabled": true,
+      "greeting": "",
+      "fallback_answer": "",
+      "handoff_reply": "",
+      "lead_done_reply": "",
+      "human_paused_reply": "",
+      "openai_model": "",
+      "rag_temperature": null,
+      "rag_top_k": null,
+      "rag_score_threshold": null,
+      "lead_questions": {}
+    }
+  ]
+}

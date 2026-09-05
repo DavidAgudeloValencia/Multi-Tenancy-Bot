@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MultiBot · Administración</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    /* ============================================================
+       Tokens — Sistema de diseño (DESIGN.md)
+       Corporate Modern · Technical Minimalism · Azul Sura + Indigo IA
+       ============================================================ */
+    :root {
+      /* Color — Modo oscuro (DESIGN.md · dark-mode-design) */
+      --bg: #0d1425;
+      --surface: #131c33;
+      --surface-dim: #1a2540;
+      --surface-3: #202c4d;
+      --nav-bg: #0a1a3d;              /* Sidebar: Azul Sura profundo */
+      --border: rgba(255, 255, 255, .08);
+      --outline: rgba(255, 255, 255, .16);
+      --primary: #4d8df7;             /* Sura Blue desaturado para oscuro */
+      --primary-hover: #6ba3f9;
+      --on-primary: #0b1c30;
+      --secondary: #fecc00;           /* Sura Yellow — acentos puntuales */
+      --ai: #6366f1;                  /* Indigo — solo para IA/bot */
+      --ai-container: rgba(129, 140, 248, .15);
+      --on-ai: #c7d2fe;
+      --success: #4ade80;
+      --success-container: rgba(34, 197, 94, .14);
+      --error: #f87171;
+      --danger: #dc4c4c;
+      --error-container: rgba(239, 68, 68, .14);
+      --text: #e6e8ee;                /* off-white, nunca blanco puro */
+      --text-muted: #9aa7bd;
+      /* Tipografía */
+      --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      --text-xs: 12px; --text-sm: 13px; --text-md: 14px; --text-base: 16px;
+      --text-lg: 20px; --text-xl: 24px;
+      /* Espaciado (grid de 8px) */
+      --s1: 8px; --s2: 16px; --s3: 24px; --s4: 32px;
+      /* Radios */
+      --r-sm: 0.25rem; --r-md: 0.5rem; --r-lg: 1rem;
+      /* Elevación (ambiental; la jerarquía la dan las superficies) */
+      --shadow-1: 0 1px 3px rgba(0, 0, 0, .45);
+      --shadow-3: 0 20px 40px rgba(0, 0, 0, .6);
+      --focus-ring: 0 0 0 3px rgba(77, 141, 247, .28);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: var(--font); background: var(--bg);
+      color: var(--text); font-size: var(--text-md); line-height: 20px;
+    }
+    h1, h2, h3 { margin: 0; }
+
+    /* ============ Layout: sidebar fija + contenido ============ */
+    .layout { display: flex; min-height: 100vh; }
+
+    .sidebar {
+      width: 240px; background: var(--nav-bg); color: #eaf1ff;
+      display: flex; flex-direction: column; padding: var(--s3) var(--s2);
+      position: sticky; top: 0; height: 100vh;
+    }
+    .sidebar .brand { display: flex; align-items: center; gap: var(--s1); margin-bottom: var(--s4); }
+    .sidebar .brand .logo {
+      width: 34px; height: 34px; border-radius: var(--r-md);
+      background: var(--secondary); color: #241a00; font-weight: 700;
+      display: grid; place-items: center; font-size: 16px;
+    }
+    .sidebar .brand h1 { font-size: var(--text-base); font-weight: 700; line-height: 1.2; }
+    .sidebar .brand small { color: #b6c4ff; font-size: var(--text-xs); }
+    .sidebar nav { display: flex; flex-direction: column; gap: 4px; flex: 1; }
+    .sidebar nav a {
+      color: #eaf1ff; text-decoration: none; padding: 10px 12px;
+      border-radius: var(--r-md); font-size: var(--text-sm); font-weight: 600;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .sidebar nav a.active { background: rgba(255, 255, 255, 0.12); }
+    .sidebar .status {
+      font-size: var(--text-xs); color: #b6c4ff; padding: var(--s2) var(--s1) 0;
+      border-top: 1px solid rgba(255,255,255,.15);
+    }
+    .sidebar .status .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #22c55e; margin-right: 6px; }
+
+    .content { flex: 1; padding: var(--s3); max-width: 1200px; }
+
+    /* ============ Cabecera ============ */
+    .topbar {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r-lg); padding: var(--s2) var(--s3);
+      display: flex; align-items: center; gap: var(--s2); flex-wrap: wrap;
+      box-shadow: var(--shadow-1); margin-bottom: var(--s3);
+    }
+    .topbar .titles h2 { font-size: var(--text-lg); font-weight: 700; }
+    .topbar .titles p { color: var(--text-muted); font-size: var(--text-sm); margin: 2px 0 0; }
+    .topbar .spacer { flex: 1; }
+
+    /* ============ Campos ============ */
+    label { display: block; font-size: var(--text-xs); font-weight: 600; color: var(--text-muted); margin: var(--s2) 0 4px; }
+    input, textarea, select {
+      width: 100%; background: var(--surface-dim); color: var(--text);
+      border: 1px solid var(--outline); border-radius: var(--r-md);
+      padding: 0 12px; font: inherit; height: 44px; outline: none;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    textarea { height: auto; padding: 10px 12px; min-height: 80px; resize: vertical; }
+    input:focus, textarea:focus { border-color: var(--primary); box-shadow: var(--focus-ring); }
+    input:disabled { opacity: .55; background: var(--surface-dim); }
+
+    /* ============ Botones ============ */
+    button { font: inherit; font-weight: 600; cursor: pointer; border: none; border-radius: var(--r-md); padding: 0 16px; height: 40px; transition: background .15s, opacity .15s; }
+    .btn-primary { background: var(--primary); color: var(--on-primary); }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-outline { background: transparent; color: var(--primary); border: 1px solid var(--primary); }
+    .btn-outline:hover { background: var(--surface-dim); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:hover { opacity: .9; }
+    .btn-ai { background: var(--ai); color: #fff; }
+    .btn-ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+    .btn-sm { height: 32px; padding: 0 12px; font-size: var(--text-xs); }
+    .btn[disabled] { opacity: .5; cursor: not-allowed; }
+
+    /* ============ Tarjetas ============ */
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: var(--s3); box-shadow: var(--shadow-1); }
+    .card + .card { margin-top: var(--s2); }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--s2); }
+
+    /* Tarjeta de agente (DESIGN.md §Components) */
+    .agent {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg);
+      padding: var(--s3); box-shadow: var(--shadow-1); display: flex; flex-direction: column; gap: var(--s2);
+    }
+    .agent .head { display: flex; align-items: center; gap: var(--s2); }
+    .agent .avatar {
+      width: 44px; height: 44px; border-radius: 50%; background: var(--primary);
+      color: var(--on-primary); font-weight: 700; display: grid; place-items: center; font-size: var(--text-base); flex-shrink: 0;
+    }
+    .agent .head .name { font-size: var(--text-lg); font-weight: 600; }
+    .agent .head .sub { color: var(--text-muted); font-size: var(--text-xs); }
+    .agent .meta { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s1); }
+    .agent .meta .cell { background: var(--surface-dim); border-radius: var(--r-md); padding: 8px 10px; }
+    .agent .meta .cell .k { font-size: var(--text-xs); color: var(--text-muted); font-weight: 600; }
+    .agent .meta .cell .v { font-size: var(--text-sm); font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .agent .actions { display: flex; gap: var(--s1); flex-wrap: wrap; margin-top: auto; }
+
+    /* Tarjeta de configuración de IA: borde superior Indigo (DESIGN.md) */
+    .ai-config { border-top: 3px solid var(--ai); }
+    .ai-config .ai-label {
+      display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-xs); font-weight: 700;
+      color: var(--on-ai); background: var(--ai-container); padding: 4px 10px; border-radius: var(--r-sm);
+      text-transform: uppercase; letter-spacing: .05em; margin-bottom: var(--s2);
+    }
+
+    /* Chips de estado (pill) */
+    .chip { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-xs); font-weight: 600; padding: 4px 10px; border-radius: 9999px; }
+    .chip.on { background: var(--success-container); color: var(--success); }
+    .chip.off { background: var(--error-container); color: var(--error); }
+    .chip.ai { background: var(--ai-container); color: var(--on-ai); }
+    .chip::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+
+    /* Zona de subida (dashed, icono nube) — DESIGN.md §Components */
+    .dropzone {
+      border: 2px dashed rgba(255, 255, 255, .18); border-radius: var(--r-lg); padding: var(--s4);
+      text-align: center; color: var(--text-muted); cursor: pointer; transition: border-color .15s, background .15s;
+    }
+    .dropzone.dragover, .dropzone:hover { border-color: var(--primary); background: var(--surface-dim); }
+    .dropzone svg { width: 40px; height: 40px; stroke: var(--primary); margin-bottom: var(--s1); }
+    .dropzone strong { display: block; color: var(--text); font-size: var(--text-base); }
+    .dropzone span { font-size: var(--text-sm); }
+
+    /* Formulario en 2 columnas */
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2) var(--s3); }
+    @media (max-width: 720px) { .two { grid-template-columns: 1fr; } .sidebar { width: 100%; height: auto; position: static; } .layout { flex-direction: column; } }
+
+    /* Modal (PDF upload) — backdrop blur + sombra nivel 3 (DESIGN.md) */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0, 0, 0, .55); backdrop-filter: blur(12px);
+      display: none; align-items: center; justify-content: center; z-index: 50; padding: var(--s2);
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal { background: var(--surface); border-radius: var(--r-lg); box-shadow: var(--shadow-3); padding: var(--s4); width: 100%; max-width: 520px; }
+    .modal h3 { font-size: var(--text-lg); margin-bottom: 4px; }
+    .modal .muted { color: var(--text-muted); font-size: var(--text-sm); }
+    .modal .row { display: flex; gap: var(--s1); margin-top: var(--s3); justify-content: flex-end; }
+
+    .toast {
+      position: fixed; bottom: var(--s3); right: var(--s3); background: var(--surface);
+      border: 1px solid var(--border); box-shadow: var(--shadow-3); border-radius: var(--r-md);
+      padding: 12px 16px; display: none; font-size: var(--text-sm); font-weight: 600; z-index: 60;
+    }
+    .toast.error { border-color: var(--error); color: var(--error); }
+    .muted { color: var(--text-muted); }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <!-- Sidebar (navegación principal, Azul Sura) -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo">🤖</div>
+        <div><h1>MultiBot</h1><small>Admin · Multi-tenant</small></div>
+      </div>
+      <nav>
+        <a href="#" class="active">📇 Agentes</a>
+        <a href="#" onclick="toast('Sección en desarrollo'); return false;">📊 Reportes</a>
+        <a href="#" onclick="toast('Sección en desarrollo'); return false;">⚙️ Ajustes</a>
+      </nav>
+      <div class="status"><span class="dot"></span>API en línea</div>
+    </aside>
+
+    <main class="content">
+      <!-- Cabecera con autenticación -->
+      <div class="topbar">
+        <div class="titles">
+          <h2>Agentes y perfiles de bot</h2>
+          <p>Gestiona cada cliente y su asistente sin tocar el código</p>
+        </div>
+        <div class="spacer"></div>
+        <input id="key" type="password" placeholder="Clave de administrador" style="width:240px" />
+        <button class="btn-primary" id="connect">Conectar</button>
+        <button class="btn-ghost" id="disconnect" style="display:none">Salir</button>
+      </div>
+
+      <!-- Lista de agentes -->
+      <section id="app" style="display:none">
+        <div class="card" style="display:flex; align-items:center; gap:var(--s2); flex-wrap:wrap">
+          <button class="btn-primary" id="newTenant">+ Nuevo agente</button>
+          <span class="muted" style="font-size:var(--text-sm)">Los cambios aplican al siguiente mensaje de WhatsApp (sin reiniciar).</span>
+        </div>
+        <div class="grid" id="tenants" style="margin-top:var(--s2)"></div>
+      </section>
+
+      <!-- Editor de agente -->
+      <section id="editor" style="display:none">
+        <div class="card">
+          <h2 id="editorTitle" style="font-size:var(--text-lg); margin-bottom:var(--s2)">Agente</h2>
+          <div class="two">
+            <div>
+              <label>ID (único, sin espacios)</label>
+              <input id="f_id" placeholder="juan-asesor" />
+              <label>Nombre visible</label>
+              <input id="f_name" placeholder="Juan Pérez - Asesor" />
+              <label>phone_number_id (Meta)</label>
+              <input id="f_phone_number_id" placeholder="123456789012345" />
+              <label>Número WhatsApp (informativo)</label>
+              <input id="f_whatsapp_number" placeholder="573001234567" />
+              <label>Token de acceso (vacío = usa el global)</label>
+              <input id="f_access_token" type="password" placeholder="•••• (opcional)" />
+              <label>Asesor que recibe leads (WhatsApp)</label>
+              <input id="f_advisor_notify_whatsapp" placeholder="573001234567" />
+            </div>
+            <div>
+              <label>Colección ChromaDB (vacío = multibot_kb_{id})</label>
+              <input id="f_collection" placeholder="multibot_kb_juan" />
+              <label>Carpeta de PDFs (vacío = knowledge/{id})</label>
+              <input id="f_knowledge_dir" placeholder="knowledge/juan" />
+              <label>Modelo de IA</label>
+              <input id="f_openai_model" placeholder="gpt-4o-mini" />
+              <label>Temperatura (0 = sin alucinar)</label>
+              <input id="f_rag_temperature" type="number" step="0.1" placeholder="0.0" />
+              <label>Fragmentos RAG (top_k)</label>
+              <input id="f_rag_top_k" type="number" placeholder="4" />
+              <label>Umbral de relevancia (0-1)</label>
+              <input id="f_rag_score_threshold" type="number" step="0.05" placeholder="0.3" />
+              <label style="display:flex; align-items:center; gap:8px; margin-top:24px">
+                <input id="f_enabled" type="checkbox" checked style="width:auto; height:auto" /> Agente habilitado
+              </label>
+            </div>
+          </div>
+
+          <div class="card ai-config" style="margin-top:var(--s3)">
+            <span class="ai-label">✦ Configuración de IA</span>
+            <label>Saludo del bot</label>
+            <textarea id="f_greeting"></textarea>
+            <label>Respuesta de fallback (cuando no hay contexto)</label>
+            <textarea id="f_fallback_answer"></textarea>
+            <label>Respuesta de handoff a humano</label>
+            <textarea id="f_handoff_reply"></textarea>
+            <label>Respuesta al completar el lead</label>
+            <textarea id="f_lead_done_reply"></textarea>
+            <label>Respuesta cuando ya está pausado (human_paused)</label>
+            <textarea id="f_human_paused_reply"></textarea>
+            <label>Preguntas del lead (JSON: lead_tipo, lead_marca_modelo, lead_anio, lead_ciudad)</label>
+            <textarea id="f_lead_questions" style="min-height:120px">{}</textarea>
+          </div>
+
+          <div style="display:flex; gap:var(--s1); margin-top:var(--s3)">
+            <button class="btn-primary" id="save">Guardar</button>
+            <button class="btn-ghost" id="cancel">Cancelar</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal de subida de PDFs -->
+  <div class="modal-backdrop" id="uploadModal">
+    <div class="modal">
+      <h3>Subir PDFs</h3>
+      <p class="muted" id="uploadTenantLabel">Base de conocimiento del agente</p>
+      <div class="dropzone" id="dropzone">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 16V4m0 0l-4 4m4-4l4 4" /><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
+        </svg>
+        <strong>Arrastra los PDF aquí o haz clic</strong>
+        <span>Condicionados, directorios, FAQs · máx. 20 MB por archivo</span>
+        <input id="fileInput" type="file" accept=".pdf" multiple hidden />
+      </div>
+      <div class="row">
+        <button class="btn-ghost" id="uploadCancel">Cancelar</button>
+        <button class="btn-primary" id="uploadSend" disabled>Subir</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const API = '/api/admin';
+    let KEY = localStorage.getItem('multibot_admin_key') || '';
+    let editingId = null;
+    let uploadTenantId = null;
+    let selectedFiles = [];
+
+    function toast(msg, isError) {
+      const t = $('toast');
+      t.textContent = msg;
+      t.className = 'toast' + (isError ? ' error' : '');
+      t.style.display = 'block';
+      clearTimeout(t._h);
+      t._h = setTimeout(() => (t.style.display = 'none'), 3000);
+    }
+
+    async function req(method, path, body, isForm) {
+      const headers = { 'X-Admin-Key': KEY };
+      if (!isForm) headers['Content-Type'] = 'application/json';
+      const res = await fetch(API + path, {
+        method,
+        headers,
+        body: isForm ? body : body ? JSON.stringify(body) : undefined,
+      });
+      if (res.status === 204) return null;
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || res.status);
+      return data;
+    }
+
+    function connected() {
+      $('connect').style.display = 'none';
+      $('disconnect').style.display = '';
+      $('app').style.display = '';
+      loadTenants();
+    }
+
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const initials = name => (name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+
+    async function loadTenants() {
+      try {
+        const tenants = await req('GET', '/tenants');
+        const wrap = $('tenants');
+        wrap.innerHTML = '';
+        if (!tenants.length) {
+          wrap.innerHTML = '<div class="card muted" style="text-align:center; padding:40px">Aún no hay agentes. Crea el primero con “+ Nuevo agente”.</div>';
+          return;
+        }
+        tenants.forEach(t => {
+          const el = document.createElement('div');
+          el.className = 'agent';
+          const coll = t.collection || ('multibot_kb_' + t.id);
+          el.innerHTML = `
+            <div class="head">
+              <div class="avatar">${esc(initials(t.name || t.id))}</div>
+              <div>
+                <div class="name">${esc(t.name || t.id)}</div>
+                <div class="sub">${esc(t.whatsapp_number || '—')}</div>
+              </div>
+            </div>
+            <div class="meta">
+              <div class="cell"><div class="k">Colección</div><div class="v" title="${esc(coll)}">${esc(coll)}</div></div>
+              <div class="cell"><div class="k">Asesor</div><div class="v">${esc(t.advisor_notify_whatsapp || '—')}</div></div>
+              <div class="cell"><div class="k">Estado</div><div class="v"><span class="chip ${t.enabled ? 'on' : 'off'}">${t.enabled ? 'Activo' : 'Desactivado'}</span></div></div>
+              <div class="cell"><div class="k">Token</div><div class="v">${t.access_token_configured ? 'Propio' : 'Global'}</div></div>
+            </div>
+            <div class="actions">
+              <button class="btn-outline btn-sm" data-edit="${esc(t.id)}">Editar</button>
+              <button class="btn-ai btn-sm" data-upload="${esc(t.id)}">Subir PDFs</button>
+              <button class="btn-ghost btn-sm" data-ingest="${esc(t.id)}">Re-ingestar</button>
+              <button class="btn-danger btn-sm" data-del="${esc(t.id)}">Eliminar</button>
+            </div>`;
+          wrap.appendChild(el);
+        });
+        document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => openEditor(b.dataset.edit));
+        document.querySelectorAll('[data-upload]').forEach(b => b.onclick = () => openUpload(b.dataset.upload));
+        document.querySelectorAll('[data-ingest]').forEach(b => b.onclick = () => ingest(b.dataset.ingest, b));
+        document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => del(b.dataset.del));
+      } catch (e) { toast('Error: ' + e.message, true); }
+    }
+
+    /* ---------- Editor ---------- */
+    function openEditor(id) {
+      editingId = id;
+      $('editorTitle').textContent = id ? 'Editar agente: ' + id : 'Nuevo agente';
+      $('app').style.display = 'none';
+      $('editor').style.display = '';
+      $('f_id').disabled = !!id;
+      if (id) req('GET', '/tenants/' + id).then(fillForm).catch(() => fillForm({}));
+      else fillForm({});
+    }
+    function fillForm(t = {}) {
+      $('f_id').value = t.id || '';
+      $('f_name').value = t.name || '';
+      $('f_phone_number_id').value = t.phone_number_id || '';
+      $('f_whatsapp_number').value = t.whatsapp_number || '';
+      $('f_access_token').value = '';
+      $('f_advisor_notify_whatsapp').value = t.advisor_notify_whatsapp || '';
+      $('f_collection').value = t.collection || '';
+      $('f_knowledge_dir').value = t.knowledge_dir || '';
+      $('f_openai_model').value = t.openai_model || '';
+      $('f_rag_temperature').value = t.rag_temperature ?? '';
+      $('f_rag_top_k').value = t.rag_top_k ?? '';
+      $('f_rag_score_threshold').value = t.rag_score_threshold ?? '';
+      $('f_enabled').checked = t.enabled !== false;
+      $('f_greeting').value = t.greeting || '';
+      $('f_fallback_answer').value = t.fallback_answer || '';
+      $('f_handoff_reply').value = t.handoff_reply || '';
+      $('f_lead_done_reply').value = t.lead_done_reply || '';
+      $('f_human_paused_reply').value = t.human_paused_reply || '';
+      $('f_lead_questions').value = JSON.stringify(t.lead_questions || {}, null, 2);
+    }
+    function collect() {
+      const payload = {
+        name: $('f_name').value, phone_number_id: $('f_phone_number_id').value,
+        whatsapp_number: $('f_whatsapp_number').value, advisor_notify_whatsapp: $('f_advisor_notify_whatsapp').value,
+        collection: $('f_collection').value, knowledge_dir: $('f_knowledge_dir').value,
+        openai_model: $('f_openai_model').value, enabled: $('f_enabled').checked,
+        greeting: $('f_greeting').value, fallback_answer: $('f_fallback_answer').value,
+        handoff_reply: $('f_handoff_reply').value, lead_done_reply: $('f_lead_done_reply').value,
+        human_paused_reply: $('f_human_paused_reply').value,
+      };
+      const tok = $('f_access_token').value.trim();
+      if (tok) payload.access_token = tok;
+      const t = $('f_rag_temperature').value; if (t !== '') payload.rag_temperature = parseFloat(t);
+      const k = $('f_rag_top_k').value; if (k !== '') payload.rag_top_k = parseInt(k, 10);
+      const s = $('f_rag_score_threshold').value; if (s !== '') payload.rag_score_threshold = parseFloat(s);
+      try { payload.lead_questions = JSON.parse($('f_lead_questions').value || '{}'); }
+      catch (e) { throw new Error('JSON de preguntas inválido'); }
+      return payload;
+    }
+    async function save() {
+      try {
+        const payload = collect();
+        if (editingId) await req('PUT', '/tenants/' + editingId, payload);
+        else await req('POST', '/tenants', { id: $('f_id').value, ...payload });
+        toast('Guardado correctamente');
+        $('editor').style.display = 'none';
+        $('app').style.display = '';
+        loadTenants();
+      } catch (e) { toast('Error: ' + e.message, true); }
+    }
+    async function del(id) {
+      if (!confirm('¿Eliminar el agente "' + id + '"?')) return;
+      try { await req('DELETE', '/tenants/' + id); toast('Agente eliminado'); loadTenants(); }
+      catch (e) { toast('Error: ' + e.message, true); }
+    }
+    async function ingest(id, btn) {
+      if (!confirm('¿Re-ingestar la base de conocimiento de "' + id + '"?')) return;
+      const orig = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Ingestando…';
+      try {
+        const r = await req('POST', '/tenants/' + id + '/ingest');
+        toast('Ingesta OK: ' + r.chunks + ' fragmento(s)');
+      } catch (e) { toast('Error de ingesta: ' + e.message, true); }
+      finally { btn.disabled = false; btn.textContent = orig; }
+    }
+
+    /* ---------- Subida de PDFs ---------- */
+    function openUpload(tenantId) {
+      uploadTenantId = tenantId;
+      selectedFiles = [];
+      $('uploadTenantLabel').textContent = 'Base de conocimiento de "' + tenantId + '"';
+      $('fileInput').value = '';
+      $('uploadSend').disabled = true;
+      $('uploadModal').classList.add('open');
+    }
+    $('dropzone').onclick = () => $('fileInput').click();
+    $('dropzone').ondragover = e => { e.preventDefault(); $('dropzone').classList.add('dragover'); };
+    $('dropzone').ondragleave = () => $('dropzone').classList.remove('dragover');
+    $('dropzone').ondrop = e => {
+      e.preventDefault();
+      $('dropzone').classList.remove('dragover');
+      selectedFiles = [...e.dataTransfer.files].filter(f => f.name.toLowerCase().endsWith('.pdf'));
+      $('uploadSend').disabled = selectedFiles.length === 0;
+      $('uploadTenantLabel').textContent = selectedFiles.length
+        ? selectedFiles.length + ' PDF(s) seleccionado(s) para "' + uploadTenantId + '"'
+        : 'Base de conocimiento de "' + uploadTenantId + '"';
+    };
+    $('fileInput').onchange = () => {
+      selectedFiles = [...$('fileInput').files].filter(f => f.name.toLowerCase().endsWith('.pdf'));
+      $('uploadSend').disabled = selectedFiles.length === 0;
+      $('uploadTenantLabel').textContent = selectedFiles.length
+        ? selectedFiles.length + ' PDF(s) seleccionado(s) para "' + uploadTenantId + '"'
+        : 'Base de conocimiento de "' + uploadTenantId + '"';
+    };
+    $('uploadCancel').onclick = () => $('uploadModal').classList.remove('open');
+    $('uploadSend').onclick = async () => {
+      if (!uploadTenantId || !selectedFiles.length) return;
+      const fd = new FormData();
+      selectedFiles.forEach(f => fd.append('files', f, f.name));
+      $('uploadSend').disabled = true;
+      $('uploadSend').textContent = 'Subiendo…';
+      try {
+        const r = await req('POST', '/tenants/' + uploadTenantId + '/documents', fd, true);
+        toast('Subidos: ' + r.saved.join(', '));
+        $('uploadModal').classList.remove('open');
+      } catch (e) { toast('Error: ' + e.message, true); }
+      finally { $('uploadSend').disabled = false; $('uploadSend').textContent = 'Subir'; }
+    };
+
+    /* ---------- Autenticación ---------- */
+    $('connect').onclick = async () => {
+      KEY = $('key').value.trim();
+      if (!KEY) return toast('Ingresa la clave', true);
+      try { await req('GET', '/tenants'); localStorage.setItem('multibot_admin_key', KEY); connected(); }
+      catch (e) { toast('Acceso denegado: ' + e.message, true); }
+    };
+    $('disconnect').onclick = () => { KEY = ''; localStorage.removeItem('multibot_admin_key'); location.reload(); };
+    $('newTenant').onclick = () => openEditor(null);
+    $('save').onclick = save;
+    $('cancel').onclick = () => { $('editor').style.display = 'none'; $('app').style.display = ''; };
+
+    if (KEY) { $('key').value = KEY; connected(); }
+  </script>
+</body>
+</html>
