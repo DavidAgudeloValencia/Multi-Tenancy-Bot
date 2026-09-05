@@ -26,7 +26,11 @@ jobs:
       - name: Ejecutar pruebas
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: pytest -q
+          # Necesario: hace que la raíz del repo (módulos `app` y `main`)
+          # quede en sys.path. Con `python -m pytest` el cwd se añade solo;
+          # PYTHONPATH lo garantiza también para el script `pytest`.
+          PYTHONPATH: ${{ github.workspace }}
+        run: python -m pytest -q
 
   build:
     name: Build imagen Docker
