@@ -87,6 +87,9 @@ pytest -q      # 44 tests (webhook, RAG, conversación, envío, multi-tenant, se
 | `TENANTS_FILE` | Ruta del registro de agentes (JSON) |
 | `ADMIN_API_KEY` | Clave del panel de administración |
 | `WEBHOOK_APP_SECRET` | App Secret de Meta (firma del webhook) |
+| `DATABASE_URL` | Base relacional (SQLite dev · PostgreSQL prod) |
+| `CRM_PROVIDER` | `mock` \| `zendesk` \| `hubspot` \| `freshdesk` |
+| `CRM_ENABLED` | `true` para sincronizar webhook → tickets |
 
 > `.env` contiene secretos y **no se versiona**.
 
@@ -96,11 +99,14 @@ pytest -q      # 44 tests (webhook, RAG, conversación, envío, multi-tenant, se
 main.py                 # Entry point FastAPI (uvicorn main:app)
 app/
   config.py             # Configuración (pydantic-settings)
+  db.py                 # SQLAlchemy async (engine/sesiones)
+  models.py             # TicketMapping, ConversationMessage
   api/admin.py          # API del panel (autenticada)
   core/                 # logging, session (Memory/Redis), ratelimit
+  crm/                  # ICrmAdapter (base) + mock (zendesk/hubspot/freshdesk: Sprint 1)
   schemas/              # Pydantic: payload de Meta, datos del panel
   services/             # whatsapp, ingestion, rag, router, conversation,
-                        # notifier, tenants, runtime
+                        # notifier, tenants, runtime, tickets
 scripts/                # generate_sample_kb, ingest, ask, diagnose_meta
 static/index.html       # Panel web de administración
 knowledge/              # PDFs de la base de conocimiento (por agente)
@@ -146,6 +152,20 @@ aislados por agente automáticamente.
 | `POST /api/admin/reload` | Recargar el registro desde disco |
 
 Panel web: `GET /admin/`.
+
+## Plataforma de atención (CRM / tickets)
+
+Sprint 0 disponible: sincronización de conversaciones con tickets mediante un
+**contrato `ICrmAdapter`** (`create_ticket`, `update_ticket`, `add_internal_note`,
+`assign_agent`, `search_tickets`) y persistencia del mapping
+`conversación ↔ ticket ↔ tenant` en SQLAlchemy (SQLite en dev, PostgreSQL en
+producción).
+
+- `CRM_PROVIDER=mock` → adaptador en memoria para desarrollar/demostrar.
+- `CRM_ENABLED=true` → el webhook crea el ticket al primer mensaje, lo
+  actualiza en los siguientes y guarda el histórico (entrada/salida).
+- Los adaptadores reales (Zendesk/HubSpot/Freshdesk) se añaden sobre el mismo
+  contrato en el Sprint 1, sin tocar el resto del flujo.
 
 ## Seguridad
 

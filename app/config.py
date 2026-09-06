@@ -71,6 +71,15 @@ class Settings(BaseSettings):
     # webhooks (X-Hub-Signature-256). En producción es obligatorio configurarla.
     webhook_app_secret: str = ""
 
+    # --- Plataforma de atención (CRM / tickets) ---
+    # URL de la base de datos relacional (SQLAlchemy). SQLite para arrancar,
+    # PostgreSQL en producción.
+    database_url: str = "sqlite+aiosqlite:///./data/app.db"
+    # Proveedor de CRM: "mock" (demo), "zendesk", "hubspot" o "freshdesk".
+    crm_provider: str = "mock"
+    # Si True, el webhook crea/actualiza tickets en el CRM por cada mensaje.
+    crm_enabled: bool = False
+
     @property
     def graph_api_base_url(self) -> str:
         """URL base de la Graph API de Meta."""

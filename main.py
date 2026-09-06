@@ -58,8 +58,13 @@ _webhook_limiter = RateLimiter(limit=300, window_seconds=60)
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    """Configura el logging y registra el arranque de la aplicación."""
+    """Configura el logging, la BD y registra el arranque de la aplicación."""
     setup_logging(settings.log_level)
+    if settings.crm_enabled:
+        from app.db import init_db
+
+        await init_db()
+        logger.info("Base de datos inicializada (CRM/tickets)")
     logger.info("%s iniciado (entorno: %s)", settings.app_name, settings.app_env)
     yield
 
@@ -218,6 +223,21 @@ async def handle_incoming_message(message: Message, value: ChangeValue) -> None:
         logger.info("Agente '%s' deshabilitado; mensaje ignorado", tenant.id)
         return
 
+    # 1.5) Sincronizar con el CRM (crear/actualizar ticket) si está activo.
+    if settings.crm_enabled:
+        from app.services.tickets import get_ticketing_service
+
+        try:
+            ticket = await get_ticketing_service().ensure_ticket(
+                tenant.id, wa_id, text, requester=sender_name
+            )
+            logger.info(
+                "Ticket %s para %s/%s (nuevo=%s)",
+                ticket["ticket_id"], tenant.id, wa_id, ticket["created"],
+            )
+        except Exception as exc:  # noqa: BLE001 - el chat sigue aunque el CRM falle
+            logger.error("No se pudo sincronizar el ticket CRM: %s", exc)
+
     # 2) Atender con el runtime del agente (RAG, sesión y asesor propios).
     runtime = get_tenant_runtime(tenant)
     reply = await runtime.handle_message(wa_id, text)
@@ -231,6 +251,13 @@ async def handle_incoming_message(message: Message, value: ChangeValue) -> None:
             access_token=tenant.effective_token,
         )
         logger.info("Respuesta enviada a %s desde el agente '%s'", wa_id, tenant.id)
+        if settings.crm_enabled:
+            from app.services.tickets import get_ticketing_service
+
+            try:
+                await get_ticketing_service().record_outbound(tenant.id, wa_id, reply)
+            except Exception as exc:  # noqa: BLE001
+                logger.error("No se pudo registrar la respuesta en el CRM: %s", exc)
     except Exception as exc:  # noqa: BLE001 - nunca romper el webhook
         logger.error("No se pudo enviar la respuesta a %s: %s", wa_id, exc)
 

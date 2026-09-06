@@ -29,3 +29,8 @@ reportlab==4.2.5        # Solo para generar los PDFs de ejemplo (scripts/)
 
 # --- Estado de sesión (Fase 4) ---
 redis==5.2.1            # Sesiones de conversación (Redis en producción)
+
+# --- Persistencia y CRM (Plataforma de atención) ---
+sqlalchemy==2.0.36      # ORM para mappings conversación↔ticket, mensajes, auditoría
+aiosqlite==0.20.0       # Driver SQLite asíncrono (dev/arranque)
+# asyncpg==0.30.0        # Driver PostgreSQL asíncrono (producción)
