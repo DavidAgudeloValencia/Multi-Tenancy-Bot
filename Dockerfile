@@ -20,7 +20,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY main.py .
 COPY app ./app
 COPY scripts ./scripts
-COPY static ./static        # panel web de administración (/admin)
+# Panel web de administración (/admin) — los # de abajo son comentarios de
+# línea completa, nunca en línea con una instrucción COPY.
+COPY static ./static
 COPY knowledge ./knowledge
 
 # Puerto del webhook dentro del contenedor.
