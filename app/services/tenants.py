@@ -9,7 +9,8 @@ Cada tenant = un agente/vendedor con:
 
 El registro vive en un archivo JSON (`data/tenants.json`) y se administra
 desde el panel web (API `/api/admin`). Las escrituras son ATÓMICAS (archivo
-temporal + os.replace) para no corromper el registro ante un fallo.
+temporal + os.replace). Los `access_token` se cifran en reposo con Fernet
+(`SECRET_ENCRYPTION_KEY`).
 """
 
 from __future__ import annotations
@@ -22,6 +23,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from app.config import get_settings
+from app.core.crypto import decrypt_secret, encrypt_secret
 
 logger = logging.getLogger("multibot.tenants")
 
@@ -89,25 +91,6 @@ class Tenant:
         return self.rag_score_threshold if self.rag_score_threshold is not None else s.rag_score_threshold
 
 
-def _validate_tenant_data(tenant_id: str, data: dict, existing_ids: set[str]) -> None:
-    """Valida los datos de un tenant antes de persistirlos."""
-    if not _SLUG_RE.match(tenant_id):
-        raise ValueError(
-            "El 'id' solo admite minúsculas, números, '-' y '_' (máx. 64 caracteres)."
-        )
-    phone = data.get("phone_number_id", "")
-    if phone and any(
-        t.get("phone_number_id") == phone and tid != tenant_id
-        for tid, t in [(k, v) for k, v in _registry_dump(existing_ids, data)]
-    ):
-        raise ValueError("El phone_number_id ya está asignado a otro agente.")
-
-
-# (Helper para evitar lógica duplicada; se reemplaza en la clase con contexto.)
-def _registry_dump(_ids, _data):
-    return []
-
-
 class TenantRegistry:
     """Carga, consulta y persiste el registro de tenants (JSON atómico)."""
 
@@ -122,7 +105,7 @@ class TenantRegistry:
 
     # ------------------------------------------------------------------
     def reload(self) -> None:
-        """(Re)carga el registro desde el archivo JSON."""
+        """(Re)carga el registro desde el archivo JSON (descifra tokens)."""
         if not self._file.exists():
             logger.warning(
                 "No existe el archivo de tenants %s: sin agentes configurados",
@@ -132,10 +115,13 @@ class TenantRegistry:
             return
 
         raw = json.loads(self._file.read_text(encoding="utf-8"))
-        self._tenants = [
-            Tenant(**{k: v for k, v in item.items() if k in self._KNOWN_FIELDS})
-            for item in raw.get("tenants", [])
-        ]
+        tenants: list[Tenant] = []
+        for item in raw.get("tenants", []):
+            data = {k: v for k, v in item.items() if k in self._KNOWN_FIELDS}
+            if data.get("access_token"):
+                data["access_token"] = decrypt_secret(data["access_token"])
+            tenants.append(Tenant(**data))
+        self._tenants = tenants
         self._reindex()
         logger.info("Registro multi-tenant: %d agente(s) cargado(s)", len(self._tenants))
 
@@ -149,7 +135,12 @@ class TenantRegistry:
         """Escribe el registro de forma ATÓMICA (tmp + os.replace)."""
         self._file.parent.mkdir(parents=True, exist_ok=True)
         payload = json.dumps(
-            {"tenants": [asdict(t) for t in self._tenants]},
+            {
+                "tenants": [
+                    {**asdict(t), "access_token": encrypt_secret(t.access_token)}
+                    for t in self._tenants
+                ]
+            },
             ensure_ascii=False,
             indent=2,
         )

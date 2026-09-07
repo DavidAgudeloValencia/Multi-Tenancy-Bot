@@ -89,6 +89,11 @@ class Settings(BaseSettings):
     auth_jwt_secret: str = ""       # firma HS256 de los tokens de sesión
     auth_token_hours: int = 12
 
+    # --- Cifrado en reposo ---
+    # Clave Fernet (base64 de 32 bytes) para cifrar los access_token de los
+    # agentes en tenants.json. Si está vacía, se guardan en texto plano (dev).
+    secret_encryption_key: str = ""
+
     @property
     def graph_api_base_url(self) -> str:
         """URL base de la Graph API de Meta."""

@@ -37,3 +37,6 @@ aiosqlite==0.20.0       # Driver SQLite asíncrono (dev/arranque)
 
 # --- Autenticación ---
 PyJWT==2.10.1           # Tokens de sesión (JWT) tras el login con Google
+
+# --- Seguridad (cifrado en reposo) ---
+cryptography==44.0.0    # Cifrado Fernet de secretos (tokens de agentes)
