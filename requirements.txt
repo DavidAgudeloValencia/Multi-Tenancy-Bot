@@ -33,7 +33,7 @@ redis==5.2.1            # Sesiones de conversación (Redis en producción)
 # --- Persistencia y CRM (Plataforma de atención) ---
 sqlalchemy==2.0.36      # ORM para mappings conversación↔ticket, mensajes, auditoría
 aiosqlite==0.20.0       # Driver SQLite asíncrono (dev/arranque)
-# asyncpg==0.30.0        # Driver PostgreSQL asíncrono (producción)
+asyncpg==0.30.0         # Driver PostgreSQL asíncrono (producción)
 
 # --- Autenticación ---
 PyJWT==2.10.1           # Tokens de sesión (JWT) tras el login con Google
