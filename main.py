@@ -41,6 +41,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.admin import router as admin_router
 from app.api.agent import router as agent_router
+from app.api.auth import router as auth_router
 from app.config import get_settings
 from app.core.logging import setup_logging
 from app.core.ratelimit import RateLimiter, make_rate_limit_dependency
@@ -82,6 +83,9 @@ app.include_router(admin_router)
 
 # API del panel de agentes (helpdesk).
 app.include_router(agent_router)
+
+# Autenticación (login con Google + JWT).
+app.include_router(auth_router)
 
 # Panel web de administración (estático; los datos requieren la clave).
 app.mount("/admin", StaticFiles(directory="static", html=True), name="admin-ui")

@@ -165,6 +165,16 @@ Panel web: `GET /admin/`.
 | `POST .../tickets/{ticket_id}/notes` | Añadir nota interna |
 | `POST .../tickets/{ticket_id}/reply` | Responder al cliente por WhatsApp |
 
+### Autenticación (Google OAuth + JWT)
+
+- `GET /auth/google/login` → redirige a Google.
+- `GET /auth/google/callback` → emite el JWT de sesión (upsert del usuario).
+- `GET /auth/me` → usuario autenticado (header `Authorization: Bearer`).
+
+Roles: `admin` · `supervisor` · `agent`. El primer login crea al usuario como
+`agent`; el rol se ajusta en la base de datos. Configurar `GOOGLE_CLIENT_ID`,
+`GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI` y `AUTH_JWT_SECRET`.
+
 ## Plataforma de atención (helpdesk propio)
 
 Sprint 0 disponible: **helpdesk nativo** (sin CRMs externos) con tickets,

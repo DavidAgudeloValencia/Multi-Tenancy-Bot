@@ -3,18 +3,16 @@
 Operaciones del agente sobre tickets: listar, detalle (histórico + notas),
 claim/release (lock TTL), transferencia, notas internas y respuesta.
 
-Autenticación provisional: header `X-Admin-Key` (se reemplazará por el login
-de Google con JWT y roles en la siguiente fase).
+Autenticación: JWT de sesión (login con Google) con roles
+`admin` | `supervisor` | `agent`.
 """
 
 from __future__ import annotations
 
-import hmac
-
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from app.config import get_settings
+from app.core.auth import require_role
 from app.services.helpdesk import (
     AlreadyClaimed,
     HelpdeskError,
@@ -25,18 +23,8 @@ from app.services.helpdesk import (
 
 router = APIRouter(prefix="/api/agent", tags=["agent"])
 
-
-async def require_agent(
-    x_admin_key: str | None = Header(default=None, alias="X-Admin-Key"),
-) -> None:
-    """Autenticación provisional del agente (TODO: sustituir por Google/JWT)."""
-    expected = get_settings().admin_api_key
-    if not expected:
-        raise HTTPException(status_code=503, detail="Autenticación no configurada")
-    if not x_admin_key or not hmac.compare_digest(
-        x_admin_key.encode(), expected.encode()
-    ):
-        raise HTTPException(status_code=401, detail="No autorizado")
+# Cualquiera de estos roles puede operar el panel de agentes.
+_require_agent_user = require_role("admin", "supervisor", "agent")
 
 
 class _Claim(BaseModel):
@@ -67,13 +55,16 @@ def _svc() -> HelpdeskService:
     return get_helpdesk_service()
 
 
-@router.get("/tenants/{tenant_id}/tickets", dependencies=[Depends(require_agent)])
+@router.get(
+    "/tenants/{tenant_id}/tickets", dependencies=[Depends(_require_agent_user)]
+)
 async def list_tickets(tenant_id: str, status: str | None = None) -> list[dict]:
     return await _svc().list_tickets(tenant_id, status)
 
 
 @router.get(
-    "/tenants/{tenant_id}/tickets/{ticket_id}", dependencies=[Depends(require_agent)]
+    "/tenants/{tenant_id}/tickets/{ticket_id}",
+    dependencies=[Depends(_require_agent_user)],
 )
 async def get_ticket(tenant_id: str, ticket_id: str) -> dict:
     detail = await _svc().get_detail(tenant_id, ticket_id)
@@ -84,7 +75,7 @@ async def get_ticket(tenant_id: str, ticket_id: str) -> dict:
 
 @router.post(
     "/tenants/{tenant_id}/tickets/{ticket_id}/claim",
-    dependencies=[Depends(require_agent)],
+    dependencies=[Depends(_require_agent_user)],
 )
 async def claim_ticket(tenant_id: str, ticket_id: str, body: _Claim) -> dict:
     try:
@@ -97,7 +88,7 @@ async def claim_ticket(tenant_id: str, ticket_id: str, body: _Claim) -> dict:
 
 @router.post(
     "/tenants/{tenant_id}/tickets/{ticket_id}/release",
-    dependencies=[Depends(require_agent)],
+    dependencies=[Depends(_require_agent_user)],
 )
 async def release_ticket(tenant_id: str, ticket_id: str, body: _Release) -> dict:
     try:
@@ -110,7 +101,7 @@ async def release_ticket(tenant_id: str, ticket_id: str, body: _Release) -> dict
 
 @router.post(
     "/tenants/{tenant_id}/tickets/{ticket_id}/transfer",
-    dependencies=[Depends(require_agent)],
+    dependencies=[Depends(_require_agent_user)],
 )
 async def transfer_ticket(tenant_id: str, ticket_id: str, body: _Transfer) -> dict:
     try:
@@ -123,7 +114,7 @@ async def transfer_ticket(tenant_id: str, ticket_id: str, body: _Transfer) -> di
 
 @router.post(
     "/tenants/{tenant_id}/tickets/{ticket_id}/notes",
-    dependencies=[Depends(require_agent)],
+    dependencies=[Depends(_require_agent_user)],
 )
 async def add_note(tenant_id: str, ticket_id: str, body: _Note) -> dict:
     try:
@@ -134,7 +125,7 @@ async def add_note(tenant_id: str, ticket_id: str, body: _Note) -> dict:
 
 @router.post(
     "/tenants/{tenant_id}/tickets/{ticket_id}/reply",
-    dependencies=[Depends(require_agent)],
+    dependencies=[Depends(_require_agent_user)],
 )
 async def reply_ticket(tenant_id: str, ticket_id: str, body: _Reply) -> dict:
     try:

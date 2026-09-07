@@ -82,6 +82,13 @@ class Settings(BaseSettings):
     # TTL (segundos) del "claim" de un ticket por un agente (lock).
     claim_ttl_seconds: int = 900
 
+    # --- Autenticación (Google OAuth + JWT) ---
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_redirect_uri: str = ""   # ej. https://<host>/auth/google/callback
+    auth_jwt_secret: str = ""       # firma HS256 de los tokens de sesión
+    auth_token_hours: int = 12
+
     @property
     def graph_api_base_url(self) -> str:
         """URL base de la Graph API de Meta."""
