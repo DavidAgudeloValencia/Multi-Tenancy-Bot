@@ -11,11 +11,11 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 
 from app.config import get_settings
 from app.db import get_session_factory
-from app.models import AuditLog, ConversationMessage, Ticket, TicketNote
+from app.models import AuditLog, ConversationMessage, Ticket, TicketNote, User
 from app.services import whatsapp as whatsapp_service
 from app.services.tenants import get_tenant_registry
 
@@ -278,6 +278,62 @@ class HelpdeskService:
                 "Ticket %s marcado como pendiente (handoff) en %s/%s",
                 ticket.id, tenant_id, conversation_id,
             )
+            return _ticket_dict(ticket)
+
+    async def auto_assign(self, tenant_id: str, ticket_id: str) -> dict | None:
+        """Asigna el ticket al agente activo con MENOR carga (round-robin por uso).
+
+        Regla de enrutamiento básica: elige el agente (rol agent/supervisor,
+        activo) con menos tickets abiertos/pendientes asignados. Si el ticket
+        ya está asignado, no hace nada. Devuelve None si no hay agentes.
+        """
+        async with self._sf() as session:
+            ticket = await session.get(Ticket, int(ticket_id))
+            if ticket is None or ticket.tenant_id != tenant_id:
+                raise HelpdeskError("Ticket no encontrado")
+            if ticket.assigned_to:
+                return _ticket_dict(ticket)
+
+            agents = (
+                await session.execute(
+                    select(User).where(
+                        User.active.is_(True),
+                        User.role.in_(["agent", "supervisor"]),
+                    )
+                )
+            ).scalars().all()
+            if not agents:
+                return None
+
+            loads: dict[str, int] = {}
+            for agent in agents:
+                count = (
+                    await session.execute(
+                        select(func.count())
+                        .select_from(Ticket)
+                        .where(
+                            Ticket.assigned_to == agent.email,
+                            Ticket.status.in_(["open", "pending"]),
+                        )
+                    )
+                ).scalar_one()
+                loads[agent.email] = count
+
+            best = min(agents, key=lambda a: (loads[a.email], a.email))
+            ticket.assigned_to = best.email
+            ticket.assigned_at = datetime.now(timezone.utc)
+            session.add(
+                TicketNote(
+                    ticket_id=ticket.id,
+                    author="router",
+                    body=f"Asignado automáticamente a {best.email}",
+                )
+            )
+            self._audit(
+                session, tenant_id, "router", "auto_assign", ticket_id, {"to": best.email}
+            )
+            await session.commit()
+            logger.info("Ticket %s auto-asignado a %s", ticket_id, best.email)
             return _ticket_dict(ticket)
 
     async def add_note(

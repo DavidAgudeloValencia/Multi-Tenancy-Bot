@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.crm.native import NativeCrmAdapter
 from app.db import Base
+from app.models import User
 from app.services.helpdesk import (
     AlreadyClaimed,
     HelpdeskService,
@@ -41,6 +42,12 @@ async def hd(tmp_path):
 
 async def _make_ticket(ticketing, tenant="t1", conv="573001234567"):
     return await ticketing.ensure_ticket(tenant, conv, "hola, necesito ayuda", intent="soporte")
+
+
+async def _add_user(factory, email, role="agent", active=True):
+    async with factory() as session:
+        session.add(User(email=email, name=email, role=role, active=active))
+        await session.commit()
 
 
 async def test_claim_and_conflict(hd) -> None:
@@ -176,3 +183,32 @@ async def test_audit_log_records_handoff(hd) -> None:
 
     audit = await service.list_audit("t1")
     assert any(a["action"] == "handoff" and a["actor"] == "bot" for a in audit)
+
+
+async def test_auto_assign_least_busy(hd) -> None:
+    service, ticketing, factory, _ = hd
+    await _add_user(factory, "ana@x.com")
+    await _add_user(factory, "bea@x.com")
+    await _add_user(factory, "carla@x.com", active=False)  # inactiva: no cuenta
+
+    t1 = await _make_ticket(ticketing, conv="573001111111")
+    t2 = await _make_ticket(ticketing, conv="573002222222")
+
+    await service.claim("t1", t1["ticket_id"], "ana@x.com")  # ana con carga 1
+    assigned = await service.auto_assign("t1", t2["ticket_id"])
+    assert assigned["assigned_to"] == "bea@x.com"  # la menos ocupada
+
+
+async def test_auto_assign_no_agents(hd) -> None:
+    service, ticketing, factory, _ = hd
+    ticket = await _make_ticket(ticketing)
+    assert await service.auto_assign("t1", ticket["ticket_id"]) is None
+
+
+async def test_auto_assign_respects_existing_owner(hd) -> None:
+    service, ticketing, factory, _ = hd
+    await _add_user(factory, "ana@x.com")
+    ticket = await _make_ticket(ticketing)
+    await service.claim("t1", ticket["ticket_id"], "ana@x.com")
+    assigned = await service.auto_assign("t1", ticket["ticket_id"])
+    assert assigned["assigned_to"] == "ana@x.com"  # no cambia al dueño actual

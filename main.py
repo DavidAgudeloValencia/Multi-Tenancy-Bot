@@ -270,8 +270,11 @@ async def handle_incoming_message(message: Message, value: ChangeValue) -> None:
             note = f"Handoff bot→humano ({reason}). Perfil: {lead}" if lead else (
                 f"Handoff bot→humano ({reason})"
             )
-            await get_helpdesk_service().mark_pending(tenant.id, wa_id, note)
+            result = await get_helpdesk_service().mark_pending(tenant.id, wa_id, note)
             logger.info("Ticket marcado pendiente por handoff en %s/%s", tenant.id, wa_id)
+            # Enrutamiento automático: asignar al agente con menor carga.
+            if result:
+                await get_helpdesk_service().auto_assign(tenant.id, result["ticket_id"])
         except Exception as exc:  # noqa: BLE001
             logger.error("No se pudo marcar el ticket pendiente: %s", exc)
 
