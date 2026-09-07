@@ -164,8 +164,9 @@ class ConversationManager:
 
         # 4) soporte (por defecto): responder con el motor RAG.
         session["state"] = "idle"
-        await self._sessions.set(wa_id, session)
         answer = await asyncio.to_thread(self._rag.ask, text)
+        session["last_rag_sources"] = answer.sources or []
+        await self._sessions.set(wa_id, session)
         return answer.answer
 
     # ------------------------------------------------------------------

@@ -178,6 +178,13 @@
             <button class="btn-ghost btn-sm" onclick="$('detail').style.display='none'; loadTickets()">Volver</button>
           </div>
           <p class="muted">Asignado a: ${esc(t.assigned_to || '—')}</p>
+          ${t.meta && t.meta.rag_sources && t.meta.rag_sources.length ? `
+          <div class="note" style="border-color:var(--ai)">
+            <b>Fuentes RAG (base de conocimiento del bot):</b>
+            <ul style="margin:4px 0 0; padding-left:18px">
+              ${t.meta.rag_sources.map(s => `<li>${esc(s.source)} · pág. ${esc(s.page)} · relevancia ${s.score}</li>`).join('')}
+            </ul>
+          </div>` : ''}
           <div id="msgs">${(t.messages||[]).map(m =>
             `<div class="msg ${m.direction}"><div class="by">${esc(m.sender||m.direction)}</div>${esc(m.body)}</div>`
           ).join('')}</div>

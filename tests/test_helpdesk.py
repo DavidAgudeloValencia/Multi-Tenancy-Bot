@@ -212,3 +212,14 @@ async def test_auto_assign_respects_existing_owner(hd) -> None:
     await service.claim("t1", ticket["ticket_id"], "ana@x.com")
     assigned = await service.auto_assign("t1", ticket["ticket_id"])
     assert assigned["assigned_to"] == "ana@x.com"  # no cambia al dueño actual
+
+
+async def test_attach_sources(hd) -> None:
+    service, ticketing, factory, _ = hd
+    ticket = await _make_ticket(ticketing)
+    sources = [{"source": "guia.pdf", "page": 0, "score": 0.8}]
+
+    await service.attach_sources("t1", "573001234567", sources)
+
+    detail = await service.get_detail("t1", ticket["ticket_id"])
+    assert detail["meta"]["rag_sources"] == sources

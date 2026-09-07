@@ -336,6 +336,28 @@ class HelpdeskService:
             logger.info("Ticket %s auto-asignado a %s", ticket_id, best.email)
             return _ticket_dict(ticket)
 
+    async def attach_sources(
+        self, tenant_id: str, conversation_id: str, sources: list[dict]
+    ) -> None:
+        """Guarda las fuentes RAG usadas por el bot en el ticket (contexto)."""
+        if not sources:
+            return
+        async with self._sf() as session:
+            ticket = (
+                await session.execute(
+                    select(Ticket).where(
+                        Ticket.tenant_id == tenant_id,
+                        Ticket.conversation_id == conversation_id,
+                    )
+                )
+            ).scalar_one_or_none()
+            if ticket is None:
+                return
+            meta = dict(ticket.meta or {})
+            meta["rag_sources"] = sources
+            ticket.meta = meta
+            await session.commit()
+
     async def add_note(
         self, tenant_id: str, ticket_id: str, note: str, author: str
     ) -> dict:

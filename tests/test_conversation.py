@@ -181,6 +181,40 @@ async def test_lead_complete_sets_handoff_reason(make_manager) -> None:
     }
 
 
+async def test_soporte_stores_rag_sources() -> None:
+    from app.core.session import MemorySessionStore
+    from app.services.conversation import ConversationManager
+    from app.services.rag import Answer
+
+    class RAGWithSources:
+        def ask(self, question):
+            return Answer(
+                question=question,
+                answer="respuesta",
+                sources=[{"source": "guia.pdf", "page": 0, "score": 0.8}],
+            )
+
+    class Router:
+        async def classify(self, text):
+            return "soporte"
+
+    class Notifier:
+        async def notify_lead(self, *a, **k):
+            pass
+
+    manager = ConversationManager(
+        sessions=MemorySessionStore(),
+        router=Router(),
+        rag=RAGWithSources(),
+        notifier=Notifier(),
+    )
+    await manager.handle_message("573001111111", "¿médico a domicilio?")
+    session = await manager.get_session("573001111111")
+    assert session["last_rag_sources"] == [
+        {"source": "guia.pdf", "page": 0, "score": 0.8}
+    ]
+
+
 async def test_memory_session_store_roundtrip_and_expiry() -> None:
     # ttl negativo -> expira en el pasado (prueba determinista de expiración)
     store = MemorySessionStore(default_ttl=-1)

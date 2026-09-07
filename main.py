@@ -253,7 +253,19 @@ async def handle_incoming_message(message: Message, value: ChangeValue) -> None:
     runtime = get_tenant_runtime(tenant)
     state_before = (await runtime.get_session(wa_id)).get("state", "idle")
     reply = await runtime.handle_message(wa_id, text)
-    state_after = (await runtime.get_session(wa_id)).get("state", "idle")
+    session = await runtime.get_session(wa_id)
+    state_after = session.get("state", "idle")
+
+    # 2.4) Guardar las fuentes RAG usadas por el bot en el ticket (contexto).
+    if settings.crm_enabled and session.get("last_rag_sources"):
+        from app.services.helpdesk import get_helpdesk_service
+
+        try:
+            await get_helpdesk_service().attach_sources(
+                tenant.id, wa_id, session["last_rag_sources"]
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.error("No se pudieron guardar las fuentes RAG: %s", exc)
 
     # 2.5) Handoff bot→humano: marcar el ticket como pendiente.
     if (
@@ -264,7 +276,6 @@ async def handle_incoming_message(message: Message, value: ChangeValue) -> None:
         from app.services.helpdesk import get_helpdesk_service
 
         try:
-            session = await runtime.get_session(wa_id)
             reason = session.get("handoff_reason", "humano")
             lead = session.get("lead") or {}
             note = f"Handoff bot→humano ({reason}). Perfil: {lead}" if lead else (
