@@ -79,6 +79,8 @@ class Settings(BaseSettings):
     crm_provider: str = "native"
     # Si True, el webhook crea/actualiza tickets por cada mensaje.
     crm_enabled: bool = False
+    # TTL (segundos) del "claim" de un ticket por un agente (lock).
+    claim_ttl_seconds: int = 900
 
     @property
     def graph_api_base_url(self) -> str:

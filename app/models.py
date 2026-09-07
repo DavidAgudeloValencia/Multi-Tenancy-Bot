@@ -86,6 +86,9 @@ class Ticket(Base):
     # low | normal | high | urgent
     priority: Mapped[str] = mapped_column(String(10), default="normal")
     assigned_to: Mapped[str] = mapped_column(String(255), default="")  # email agente
+    assigned_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     tags: Mapped[list] = mapped_column(JSON, default=list)
     meta: Mapped[dict] = mapped_column(JSON, default=dict)  # wa_message_id, intent...
     created_at: Mapped[datetime] = mapped_column(

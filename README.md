@@ -153,6 +153,18 @@ aislados por agente automáticamente.
 
 Panel web: `GET /admin/`.
 
+### API del panel de agentes (`/api/agent`, header `X-Admin-Key`)
+
+| Método / ruta | Acción |
+|---|---|
+| `GET /api/agent/tenants/{id}/tickets` | Listar tickets (filtro `?status=`) |
+| `GET /api/agent/tenants/{id}/tickets/{ticket_id}` | Detalle: ticket + historial + notas |
+| `POST .../tickets/{ticket_id}/claim` | Reclamar (lock con `CLAIM_TTL_SECONDS`) |
+| `POST .../tickets/{ticket_id}/release` | Liberar (solo el dueño) |
+| `POST .../tickets/{ticket_id}/transfer` | Transferir a otro agente con nota |
+| `POST .../tickets/{ticket_id}/notes` | Añadir nota interna |
+| `POST .../tickets/{ticket_id}/reply` | Responder al cliente por WhatsApp |
+
 ## Plataforma de atención (helpdesk propio)
 
 Sprint 0 disponible: **helpdesk nativo** (sin CRMs externos) con tickets,
