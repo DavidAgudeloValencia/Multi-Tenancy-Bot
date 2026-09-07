@@ -90,6 +90,9 @@ app.include_router(auth_router)
 # Panel web de administración (estático; los datos requieren la clave).
 app.mount("/admin", StaticFiles(directory="static", html=True), name="admin-ui")
 
+# Panel web de agentes (login con Google).
+app.mount("/agent", StaticFiles(directory="static/agent", html=True), name="agent-ui")
+
 
 def _verify_meta_signature(raw_body: bytes, signature_header: str | None) -> bool:
     """Valida la firma HMAC-SHA256 que Meta añade en `X-Hub-Signature-256`.

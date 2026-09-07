@@ -134,3 +134,16 @@ async def test_mark_pending_on_handoff(hd) -> None:
     detail = await service.get_detail("t1", result["ticket_id"])
     assert detail["status"] == "pending"
     assert any("Handoff bot→humano" in n["body"] for n in detail["notes"])
+
+
+async def test_metrics(hd) -> None:
+    service, ticketing, factory, _ = hd
+    await _make_ticket(ticketing)  # open
+    await ticketing.ensure_ticket("t1", "573009999999", "otro caso")  # open
+    await service.mark_pending("t1", "573001234567", "handoff")  # pending
+
+    metrics = await service.metrics("t1")
+    assert metrics["total"] == 2
+    assert metrics["open"] == 1
+    assert metrics["pending"] == 1
+    assert metrics["closed"] == 0

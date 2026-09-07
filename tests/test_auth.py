@@ -86,3 +86,14 @@ def test_me_requires_bearer_token(auth_client) -> None:
     me = auth_client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert me.status_code == 200
     assert me.json()["email"] == "ana@x.com"
+
+
+def test_callback_redirects_with_token_when_state(auth_client) -> None:
+    response = auth_client.get(
+        "/auth/google/callback", params={"code": "abc", "state": "/agent/"}
+    )
+    # TestClient sigue el redirect al panel (/agent/) -> 200
+    assert response.status_code == 200
+    assert response.history  # hubo una redirección previa
+    location = response.history[0].headers["location"]
+    assert location.startswith("/agent/#token=")

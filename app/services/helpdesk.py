@@ -78,6 +78,22 @@ class HelpdeskService:
             rows = (await session.execute(query)).scalars().all()
             return [_ticket_dict(t) for t in rows]
 
+    async def metrics(self, tenant_id: str) -> dict:
+        """Contadores de tickets por estado (para el dashboard del panel)."""
+        async with self._sf() as session:
+            rows = (
+                await session.execute(
+                    select(Ticket.status).where(Ticket.tenant_id == tenant_id)
+                )
+            ).all()
+        statuses = [r[0] for r in rows]
+        return {
+            "total": len(statuses),
+            "open": statuses.count("open"),
+            "pending": statuses.count("pending"),
+            "closed": statuses.count("closed"),
+        }
+
     async def get_detail(self, tenant_id: str, ticket_id: str) -> dict | None:
         async with self._sf() as session:
             ticket = await session.get(Ticket, int(ticket_id))

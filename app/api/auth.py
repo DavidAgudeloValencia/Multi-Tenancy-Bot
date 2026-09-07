@@ -21,8 +21,12 @@ router = APIRouter(tags=["auth"])
 
 
 @router.get("/auth/google/login")
-async def google_login() -> RedirectResponse:
-    """Redirige al consentimiento de Google."""
+async def google_login(next: str | None = None) -> RedirectResponse:
+    """Redirige al consentimiento de Google.
+
+    `next` (opcional) es la URL a la que se vuelve tras el login; viaja como
+    `state` y el callback redirige allí con el token en el fragmento `#token=`.
+    """
     settings = get_settings()
     if not settings.google_client_id or not settings.google_redirect_uri:
         raise HTTPException(
@@ -37,13 +41,19 @@ async def google_login() -> RedirectResponse:
         "access_type": "offline",
         "prompt": "consent",
     }
+    if next:
+        params["state"] = next
     url = "https://accounts.google.com/o/oauth2/v2/auth?" + urllib.parse.urlencode(params)
     return RedirectResponse(url)
 
 
 @router.get("/auth/google/callback")
-async def google_callback(code: str) -> dict:
-    """Intercambia el código, valida el ID token y emite un JWT de sesión."""
+async def google_callback(code: str, state: str | None = None):
+    """Intercambia el código, valida el ID token y emite un JWT de sesión.
+
+    Si `state` viene informado, redirige a esa URL con el token en el fragmento
+    (`/agent/#token=...`); si no, devuelve JSON (útil para clientes/API).
+    """
     try:
         tokens = await google_auth.exchange_code(code)
         info = await google_auth.verify_id_token(tokens["id_token"])
@@ -80,6 +90,9 @@ async def google_callback(code: str) -> dict:
     user_dict = {"email": email, "name": name, "picture": picture, "role": role}
     token = create_access_token(user_dict)
     logger.info("Login Google OK para %s (rol %s)", email, role)
+
+    if state:
+        return RedirectResponse(f"{state}#token={token}")
     return {"token": token, "user": user_dict}
 
 

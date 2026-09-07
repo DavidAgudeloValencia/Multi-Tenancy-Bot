@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MultiBot · Panel de agentes</title>
+  <style>
+    :root {
+      --bg:#0d1425; --surface:#131c33; --surface-dim:#1a2540; --border:rgba(255,255,255,.08);
+      --outline:rgba(255,255,255,.16); --primary:#4d8df7; --primary-hover:#6ba3f9; --on-primary:#0b1c30;
+      --ai:#6366f1; --success:#4ade80; --warning:#fbbf24; --error:#f87171; --danger:#dc4c4c;
+      --text:#e6e8ee; --text-muted:#9aa7bd;
+      --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+      --r-md:0.5rem; --r-lg:1rem;
+    }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:var(--font); background:var(--bg); color:var(--text); font-size:14px; line-height:1.5; }
+    header { display:flex; align-items:center; gap:12px; padding:12px 20px; background:var(--surface); border-bottom:1px solid var(--border); position:sticky; top:0; }
+    header h1 { font-size:16px; margin:0; }
+    header .spacer { flex:1; }
+    header .who { color:var(--text-muted); font-size:12px; }
+    button, input, textarea { font:inherit; }
+    input, textarea { background:var(--surface-dim); color:var(--text); border:1px solid var(--outline); border-radius:var(--r-md); padding:8px 10px; }
+    input:focus, textarea:focus { outline:none; border-color:var(--primary); }
+    textarea { width:100%; min-height:60px; resize:vertical; }
+    button { cursor:pointer; border:none; border-radius:var(--r-md); padding:8px 14px; font-weight:600; }
+    .btn { background:var(--primary); color:var(--on-primary); }
+    .btn:hover { background:var(--primary-hover); }
+    .btn-ghost { background:transparent; color:var(--text); border:1px solid var(--border); }
+    .btn-danger { background:var(--danger); color:#fff; }
+    .btn-sm { padding:4px 10px; font-size:12px; }
+    .wrap { max-width:1000px; margin:20px auto; padding:0 16px; }
+    .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:16px; margin-bottom:14px; }
+    .metrics { display:flex; gap:12px; margin-bottom:14px; }
+    .metric { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:12px; text-align:center; }
+    .metric b { font-size:22px; display:block; }
+    .metric span { color:var(--text-muted); font-size:12px; }
+    .ticket { display:flex; gap:10px; align-items:center; padding:12px; border:1px solid var(--border); border-radius:var(--r-md); margin-bottom:8px; cursor:pointer; }
+    .ticket:hover { border-color:var(--primary); }
+    .ticket .sub { font-weight:600; }
+    .ticket .meta { color:var(--text-muted); font-size:12px; }
+    .chip { font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; }
+    .chip.open { background:rgba(74,222,128,.15); color:var(--success); }
+    .chip.pending { background:rgba(251,191,36,.15); color:var(--warning); }
+    .chip.closed { background:rgba(248,113,113,.15); color:var(--error); }
+    .msg { padding:8px 10px; border-radius:var(--r-md); margin-bottom:6px; max-width:80%; }
+    .msg.in { background:var(--surface-dim); }
+    .msg.out { background:rgba(99,102,241,.18); margin-left:auto; }
+    .msg .by { font-size:11px; color:var(--text-muted); }
+    .note { border-left:3px solid var(--ai); padding:6px 10px; margin:6px 0; background:var(--surface-dim); font-size:13px; }
+    .muted { color:var(--text-muted); font-size:12px; }
+    #login { text-align:center; padding:60px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🤖 MultiBot · Panel de agentes</h1>
+    <span class="spacer"></span>
+    <span class="who" id="who"></span>
+    <button class="btn-ghost btn-sm" id="logout" style="display:none">Salir</button>
+  </header>
+
+  <div class="wrap" id="login" style="display:none">
+    <h2>Inicia sesión para atender conversaciones</h2>
+    <button class="btn" onclick="location.href='/auth/google/login?next='+encodeURIComponent('/agent/')">Entrar con Google</button>
+    <p class="muted">También puedes pegar un token:</p>
+    <input id="manualToken" placeholder="token JWT" style="width:100%; max-width:420px" />
+    <button class="btn-ghost" onclick="setToken(document.getElementById('manualToken').value)">Usar token</button>
+  </div>
+
+  <div class="wrap" id="app" style="display:none">
+    <div class="card row">
+      <label class="muted">Tenant (id del agente)</label>
+      <input id="tenant" placeholder="ej. agente-ejemplo" />
+      <button class="btn" onclick="loadAll()">Cargar</button>
+      <span class="spacer"></span>
+    </div>
+
+    <div class="metrics" id="metrics"></div>
+
+    <div id="list"></div>
+    <div id="detail" style="display:none"></div>
+  </div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    let TOKEN = localStorage.getItem('multibot_agent_token') || '';
+
+    function setToken(t) {
+      t = (t || '').trim();
+      if (!t) return;
+      TOKEN = t;
+      localStorage.setItem('multibot_agent_token', t);
+      location.hash = '';
+      boot();
+    }
+    function logout() { TOKEN = ''; localStorage.removeItem('multibot_agent_token'); location.reload(); }
+
+    async function api(method, path, body) {
+      const res = await fetch('/api/agent' + path, {
+        method,
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN },
+        body: body ? JSON.stringify(body) : undefined,
+      });
+      if (res.status === 401) { logout(); throw new Error('Sesión expirada'); }
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || res.status);
+      return data;
+    }
+
+    function tenantId() { return $('tenant').value.trim(); }
+
+    async function boot() {
+      if (!TOKEN) {
+        $('login').style.display = '';
+        $('app').style.display = 'none';
+        return;
+      }
+      try {
+        const me = await fetch('/auth/me', { headers: { Authorization: 'Bearer ' + TOKEN } });
+        if (!me.ok) throw new Error('no auth');
+        const u = await me.json();
+        $('who').textContent = u.name || u.email;
+        $('logout').style.display = '';
+        $('login').style.display = 'none';
+        $('app').style.display = '';
+        $('tenant').value = localStorage.getItem('multibot_tenant') || '';
+        if ($('tenant').value) await loadAll();
+      } catch (e) { logout(); }
+    }
+
+    async function loadAll() {
+      localStorage.setItem('multibot_tenant', tenantId());
+      if (!tenantId()) return;
+      await Promise.all([loadMetrics(), loadTickets()]);
+    }
+
+    async function loadMetrics() {
+      const m = await api('GET', '/tenants/' + tenantId() + '/metrics');
+      $('metrics').innerHTML = `
+        <div class="metric"><b>${m.open}</b><span>abiertos</span></div>
+        <div class="metric"><b>${m.pending}</b><span>pendientes</span></div>
+        <div class="metric"><b>${m.closed}</b><span>cerrados</span></div>
+        <div class="metric"><b>${m.total}</b><span>total</span></div>`;
+    }
+
+    async function loadTickets() {
+      const tickets = await api('GET', '/tenants/' + tenantId() + '/tickets');
+      const wrap = $('list');
+      wrap.innerHTML = '<h3>Tickets</h3>';
+      if (!tickets.length) { wrap.innerHTML += '<p class="muted">Sin tickets.</p>'; return; }
+      tickets.forEach(t => {
+        const el = document.createElement('div');
+        el.className = 'ticket';
+        el.innerHTML = `
+          <div style="flex:1" onclick="openTicket('${t.ticket_id}')">
+            <div class="sub">${esc(t.subject || '—')}</div>
+            <div class="meta">#${t.ticket_id} · ${esc(t.conversation_id)} · ${esc(t.assigned_to || 'sin asignar')}</div>
+          </div>
+          <span class="chip ${t.status}">${t.status}</span>`;
+        wrap.appendChild(el);
+      });
+    }
+
+    async function openTicket(id) {
+      const t = await api('GET', '/tenants/' + tenantId() + '/tickets/' + id);
+      const d = $('detail');
+      d.style.display = '';
+      d.innerHTML = `
+        <div class="card">
+          <div class="row">
+            <h3 style="margin:0">#${t.ticket_id} — ${esc(t.subject)}</h3>
+            <span class="chip ${t.status}">${t.status}</span>
+            <span class="spacer"></span>
+            <button class="btn-ghost btn-sm" onclick="claim('${id}')">Reclamar</button>
+            <button class="btn-ghost btn-sm" onclick="release('${id}')">Liberar</button>
+            <button class="btn-ghost btn-sm" onclick="$('detail').style.display='none'; loadTickets()">Volver</button>
+          </div>
+          <p class="muted">Asignado a: ${esc(t.assigned_to || '—')}</p>
+          <div id="msgs">${(t.messages||[]).map(m =>
+            `<div class="msg ${m.direction}"><div class="by">${esc(m.sender||m.direction)}</div>${esc(m.body)}</div>`
+          ).join('')}</div>
+          <div id="notes">${(t.notes||[]).map(n => `<div class="note"><b>${esc(n.author)}</b>: ${esc(n.body)}</div>`).join('')}</div>
+        </div>
+        <div class="card">
+          <textarea id="replyText" placeholder="Responder al cliente (se envía por WhatsApp)"></textarea>
+          <div class="row" style="margin-top:8px">
+            <button class="btn" onclick="reply('${id}')">Enviar respuesta</button>
+            <input id="noteText" placeholder="Nota interna" style="flex:1" />
+            <button class="btn-ghost" onclick="addNote('${id}')">Añadir nota</button>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <input id="transferTo" placeholder="email del agente destino" />
+            <input id="transferNote" placeholder="motivo" style="flex:1" />
+            <button class="btn-ghost" onclick="transfer('${id}')">Transferir</button>
+          </div>
+        </div>`;
+      window.scrollTo(0, 0);
+    }
+
+    function myEmail() { return TOKEN ? JSON.parse(atob(TOKEN.split('.')[1])).email : 'agente'; }
+    async function claim(id) { await api('POST', `/tenants/${tenantId()}/tickets/${id}/claim`, { agent_email: myEmail() }); loadAll(); openTicket(id); }
+    async function release(id) { await api('POST', `/tenants/${tenantId()}/tickets/${id}/release`, { agent_email: myEmail() }); openTicket(id); }
+    async function addNote(id) { await api('POST', `/tenants/${tenantId()}/tickets/${id}/notes`, { note: $('noteText').value, author: myEmail() }); openTicket(id); }
+    async function transfer(id) { await api('POST', `/tenants/${tenantId()}/tickets/${id}/transfer`, { to_agent: $('transferTo').value, note: $('transferNote').value, author: myEmail() }); openTicket(id); }
+    async function reply(id) { await api('POST', `/tenants/${tenantId()}/tickets/${id}/reply`, { message: $('replyText').value, author: myEmail() }); openTicket(id); }
+
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+    $('logout').onclick = logout;
+    if (location.hash.startsWith('#token=')) setToken(location.hash.slice(7));
+    else boot();
+  </script>
+</body>
+</html>
