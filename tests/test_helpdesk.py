@@ -147,3 +147,32 @@ async def test_metrics(hd) -> None:
     assert metrics["open"] == 1
     assert metrics["pending"] == 1
     assert metrics["closed"] == 0
+
+
+async def test_audit_log_records_actions(hd) -> None:
+    service, ticketing, factory, _ = hd
+    ticket = await _make_ticket(ticketing)
+
+    await service.claim("t1", ticket["ticket_id"], "ana@x.com")
+    await service.transfer(
+        "t1", ticket["ticket_id"], "bea@x.com", "especialista", "ana@x.com"
+    )
+    await service.release("t1", ticket["ticket_id"], "bea@x.com")
+
+    audit = await service.list_audit("t1")
+    actions = [a["action"] for a in audit]
+    assert "claim" in actions
+    assert "transfer" in actions
+    assert "release" in actions
+    # ordenado: el más reciente primero
+    assert audit[0]["action"] == "release"
+    assert audit[0]["actor"] == "bea@x.com"
+
+
+async def test_audit_log_records_handoff(hd) -> None:
+    service, ticketing, factory, _ = hd
+    await _make_ticket(ticketing)
+    await service.mark_pending("t1", "573001234567", "handoff")
+
+    audit = await service.list_audit("t1")
+    assert any(a["action"] == "handoff" and a["actor"] == "bot" for a in audit)

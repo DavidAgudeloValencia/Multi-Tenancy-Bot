@@ -70,6 +70,13 @@ async def metrics(tenant_id: str) -> dict:
 
 
 @router.get(
+    "/tenants/{tenant_id}/audit", dependencies=[Depends(_require_agent_user)]
+)
+async def audit(tenant_id: str, limit: int = 100) -> list[dict]:
+    return await _svc().list_audit(tenant_id, limit)
+
+
+@router.get(
     "/tenants/{tenant_id}/tickets/{ticket_id}",
     dependencies=[Depends(_require_agent_user)],
 )

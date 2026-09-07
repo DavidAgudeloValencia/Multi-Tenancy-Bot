@@ -114,3 +114,23 @@ class TicketNote(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=_utcnow
     )
+
+
+class AuditLog(Base):
+    """Registro inmutable de acciones (quién, cuándo, qué).
+
+    Solo se añaden filas (append-only): no hay endpoints de edición/borrado.
+    """
+
+    __tablename__ = "audit_logs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tenant_id: Mapped[str] = mapped_column(String(64), index=True)
+    actor: Mapped[str] = mapped_column(String(255), default="")  # email
+    action: Mapped[str] = mapped_column(String(64), index=True)  # claim|release|...
+    target_type: Mapped[str] = mapped_column(String(32), default="ticket")
+    target_id: Mapped[str] = mapped_column(String(128), default="")
+    details: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utcnow
+    )

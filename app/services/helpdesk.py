@@ -15,7 +15,7 @@ from sqlalchemy import select
 
 from app.config import get_settings
 from app.db import get_session_factory
-from app.models import ConversationMessage, Ticket, TicketNote
+from app.models import AuditLog, ConversationMessage, Ticket, TicketNote
 from app.services import whatsapp as whatsapp_service
 from app.services.tenants import get_tenant_registry
 
@@ -64,6 +64,50 @@ class HelpdeskService:
     ) -> None:
         self._sf = session_factory or get_session_factory()
         self._send_message = send_message or whatsapp_service.send_text_message
+
+    @staticmethod
+    def _audit(
+        session: Any,
+        tenant_id: str,
+        actor: str,
+        action: str,
+        target_id: str,
+        details: dict | None = None,
+    ) -> None:
+        """Añade una entrada inmutable de auditoría a la sesión."""
+        session.add(
+            AuditLog(
+                tenant_id=tenant_id,
+                actor=actor,
+                action=action,
+                target_id=str(target_id),
+                details=details or {},
+            )
+        )
+
+    async def list_audit(self, tenant_id: str, limit: int = 100) -> list[dict]:
+        """Devuelve el registro de auditoría del tenant (más reciente primero)."""
+        async with self._sf() as session:
+            rows = (
+                await session.execute(
+                    select(AuditLog)
+                    .where(AuditLog.tenant_id == tenant_id)
+                    .order_by(AuditLog.id.desc())
+                    .limit(limit)
+                )
+            ).scalars().all()
+            return [
+                {
+                    "id": a.id,
+                    "actor": a.actor,
+                    "action": a.action,
+                    "target_type": a.target_type,
+                    "target_id": a.target_id,
+                    "details": a.details or {},
+                    "created_at": a.created_at.isoformat() if a.created_at else None,
+                }
+                for a in rows
+            ]
 
     # ------------------------------------------------------------------
     async def list_tickets(self, tenant_id: str, status: str | None = None) -> list[dict]:
@@ -162,6 +206,7 @@ class HelpdeskService:
             ticket.assigned_at = now
             if ticket.status != "closed":
                 ticket.status = "open"
+            self._audit(session, tenant_id, agent_email, "claim", ticket_id)
             await session.commit()
             return _ticket_dict(ticket)
 
@@ -175,6 +220,7 @@ class HelpdeskService:
                 raise NotOwner("Solo el agente dueño puede liberarlo")
             ticket.assigned_to = ""
             ticket.assigned_at = None
+            self._audit(session, tenant_id, agent_email, "release", ticket_id)
             await session.commit()
             return _ticket_dict(ticket)
 
@@ -200,6 +246,9 @@ class HelpdeskService:
                     body=f"Transferido a {to_agent}: {note}",
                 )
             )
+            self._audit(
+                session, tenant_id, author, "transfer", ticket_id, {"to": to_agent}
+            )
             await session.commit()
             return _ticket_dict(ticket)
 
@@ -223,6 +272,7 @@ class HelpdeskService:
                 return None
             ticket.status = "pending"
             session.add(TicketNote(ticket_id=ticket.id, author="bot", body=note))
+            self._audit(session, tenant_id, "bot", "handoff", ticket.id)
             await session.commit()
             logger.info(
                 "Ticket %s marcado como pendiente (handoff) en %s/%s",
@@ -238,6 +288,7 @@ class HelpdeskService:
             if ticket is None or ticket.tenant_id != tenant_id:
                 raise HelpdeskError("Ticket no encontrado")
             session.add(TicketNote(ticket_id=ticket.id, author=author, body=note))
+            self._audit(session, tenant_id, author, "note", ticket_id)
             await session.commit()
             return {"status": "ok"}
 
@@ -278,6 +329,7 @@ class HelpdeskService:
                     body=f"Respuesta enviada al cliente: {message_text[:120]}",
                 )
             )
+            self._audit(session, tenant_id, author, "reply", ticket_id)
             await session.commit()
 
         logger.info("Respuesta del agente %s enviada en ticket %s", author, ticket_id)
