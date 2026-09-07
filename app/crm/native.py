@@ -1,9 +1,8 @@
-"""Helpdesk nativo (nuestro propio CRM) — implementa `ICrmAdapter`.
+"""Sistema nativo de tickets y atención — implementa `ICrmAdapter`.
 
-No integra ningún proveedor externo: los tickets, notas, asignaciones y
-estados viven en nuestras propias tablas (`tickets`, `ticket_notes`).
-Implementa el MISMO contrato que tendría un Zendesk/Freshdesk, tomado como
-referencia de funcionalidades (assignee, estado, prioridad, notas internas).
+Almacena los tickets, notas, asignaciones y estados en nuestras propias tablas
+relacionales (`tickets`, `ticket_notes`), proporcionando gestión autónoma sin
+depender de proveedores externos.
 """
 
 from __future__ import annotations

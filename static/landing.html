@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multi-Tenancy Bot — Plataforma Multi-Tenant de Agentes IA para WhatsApp</title>
+  <meta name="description"
+    content="Agentes conversacionales con RAG aislado por tenant, calificación de leads 24/7 y handoff inteligente a asesores de seguros y empresas sobre WhatsApp Cloud API." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;460;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ============================================================
+       Tokens de Diseño — DESIGN.md (Golden Hour Editorial Dashboard)
+       ============================================================ */
+    :root {
+      --color-midnight-wine: #421d24;
+      --color-royal-violet: #714cb6;
+      --color-lilac-mist: #d4c7ff;
+      --color-deep-lagoon: #0c4243;
+      --color-warm-parchment: #f2f0eb;
+      --color-soft-mist: #e3e3e2;
+      --color-ink-charcoal: #292827;
+      --color-stone-gray: #666666;
+      --color-paper-white: #ffffff;
+
+      --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-pill: 999px;
+
+      --shadow-subtle: 0 1px 3px rgba(41, 40, 39, 0.05);
+      --shadow-float: 0 12px 32px rgba(41, 40, 39, 0.08);
+      --shadow-inset-violet: rgb(113, 76, 182) 0px 0px 0px 1px inset;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      font-family: var(--font-main);
+      background-color: var(--color-warm-parchment);
+      color: var(--color-ink-charcoal);
+      font-size: 16px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    /* ============================================================
+       Pill Announcement Banner
+       ============================================================ */
+    .announcement-banner {
+      background-color: var(--color-midnight-wine);
+      color: #ffffff;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      text-align: center;
+    }
+
+    .announcement-banner .badge {
+      background: var(--color-lilac-mist);
+      color: var(--color-midnight-wine);
+      padding: 2px 8px;
+      border-radius: var(--radius-pill);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .announcement-banner a {
+      color: var(--color-lilac-mist);
+      text-decoration: underline;
+      font-weight: 600;
+    }
+
+    /* ============================================================
+       Header & Navigation (Sticky Translucent)
+       ============================================================ */
+    header.site-header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(242, 240, 235, 0.85);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-bottom: 1px solid var(--color-soft-mist);
+      transition: all 0.2s ease;
+    }
+
+    .header-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 24px;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      background: var(--color-midnight-wine);
+      color: var(--color-lilac-mist);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .brand-text h1 {
+      font-size: 19px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: var(--color-ink-charcoal);
+      line-height: 1.1;
+    }
+
+    .brand-text span {
+      font-size: 12px;
+      color: var(--color-stone-gray);
+      letter-spacing: 0.02em;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      font-size: 15px;
+      font-weight: 460;
+      color: var(--color-ink-charcoal);
+      transition: color 0.15s ease;
+    }
+
+    .nav-links a:hover {
+      color: var(--color-royal-violet);
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-ghost {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--color-ink-charcoal);
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--color-soft-mist);
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-ghost:hover {
+      background: var(--color-paper-white);
+      border-color: var(--color-ink-charcoal);
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 460;
+      color: #ffffff;
+      background: var(--color-midnight-wine);
+      padding: 10px 20px;
+      border-radius: var(--radius-lg);
+      border: none;
+      cursor: pointer;
+      box-shadow: var(--shadow-subtle);
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.93;
+      transform: translateY(-1px);
+    }
+
+    .btn-lilac {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--color-ink-charcoal);
+      background: var(--color-lilac-mist);
+      border: 1px solid var(--color-ink-charcoal);
+      padding: 8px 16px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-lilac:hover {
+      background: #c3b3ff;
+    }
+
+    /* ============================================================
+       Hero Section — Warm Editorial + Translucent Mockups
+       ============================================================ */
+    .hero-section {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 64px 24px 80px;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 48px;
+      align-items: center;
+    }
+
+    .hero-content {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .hero-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: var(--color-paper-white);
+      border: 1px solid var(--color-soft-mist);
+      border-radius: var(--radius-pill);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-royal-violet);
+      width: fit-content;
+    }
+
+    .hero-title {
+      font-size: 52px;
+      font-weight: 460;
+      line-height: 1.08;
+      letter-spacing: -0.025em;
+      color: var(--color-ink-charcoal);
+    }
+
+    .hero-title span.accent {
+      color: var(--color-midnight-wine);
+      font-weight: 600;
+    }
+
+    .hero-description {
+      font-size: 18px;
+      line-height: 1.55;
+      color: var(--color-stone-gray);
+      max-width: 560px;
+    }
+
+    .hero-cta-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-top: 8px;
+    }
+
+    .hero-cta-group .btn-primary {
+      padding: 14px 28px;
+      font-size: 16px;
+    }
+
+    .hero-cta-group .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--color-ink-charcoal);
+      padding: 14px 24px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--color-soft-mist);
+      background: var(--color-paper-white);
+      transition: all 0.15s ease;
+    }
+
+    .hero-cta-group .btn-secondary:hover {
+      border-color: var(--color-ink-charcoal);
+    }
+
+    .hero-badges {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      margin-top: 16px;
+      font-size: 13px;
+      color: var(--color-stone-gray);
+    }
+
+    .hero-badge-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hero-badge-item svg {
+      color: var(--color-deep-lagoon);
+    }
+
+    /* Floating UI Preview Card */
+    .hero-showcase {
+      position: relative;
+    }
+
+    .hero-canvas-card {
+      background: var(--color-paper-white);
+      border: 1px solid var(--color-soft-mist);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-float);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .canvas-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--color-soft-mist);
+      padding-bottom: 16px;
+      margin-bottom: 18px;
+    }
+
+    .chat-user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .chat-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: var(--color-lilac-mist);
+      color: var(--color-midnight-wine);
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .chat-status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      display: inline-block;
+      margin-right: 4px;
+    }
+
+    .tenant-badge-pill {
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--color-warm-parchment);
+      border: 1px solid var(--color-soft-mist);
+      padding: 4px 10px;
+      border-radius: var(--radius-pill);
+      color: var(--color-stone-gray);
+    }
+
+    .chat-messages {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .chat-msg {
+      max-width: 88%;
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .chat-msg.customer {
+      align-self: flex-start;
+      background: var(--color-warm-parchment);
+      border: 1px solid var(--color-soft-mist);
+      border-bottom-left-radius: 4px;
+    }
+
+    .chat-msg.bot {
+      align-self: flex-end;
+      background: #faf8ff;
+      border: 1px solid var(--color-lilac-mist);
+      border-bottom-right-radius: 4px;
+    }
+
+    .rag-citation-box {
+      margin-top: 8px;
+      padding: 8px 10px;
+      background: rgba(212, 199, 255, 0.25);
+      border-left: 3px solid var(--color-royal-violet);
+      border-radius: 4px;
+      font-size: 12px;
+      color: var(--color-ink-charcoal);
+    }
+
+    .rag-citation-box strong {
+      color: var(--color-royal-violet);
+    }
+
+    .floating-lead-card {
+      position: absolute;
+      bottom: -18px;
+      right: -12px;
+      background: var(--color-paper-white);
+      border: 1px solid var(--color-soft-mist);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 13px;
+      animation: floatSlow 4s ease-in-out infinite;
+    }
+
+    @keyframes floatSlow {
+
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+
+      50% {
+        transform: translateY(-6px);
+      }
+    }
+
+    .lead-badge {
+      background: #dcfce7;
+      color: #166534;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 11px;
+    }
+
+    /* ============================================================
+       Metrics & Trust Band
+       ============================================================ */
+    .trust-section {
+      max-width: 1200px;
+      margin: 0 auto 80px;
+      padding: 0 24px;
+    }
+
+    .trust-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      background: var(--color-paper-white);
+      border: 1px solid var(--color-soft-mist);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+
+    .trust-cell {
+      padding: 28px 24px;
+      text-align: center;
+      border-right: 1px solid var(--color-soft-mist);
+    }
+
+    .trust-cell:last-child {
+      border-right: none;
+    }
+
+    .trust-cell h3 {
+      font-size: 32px;
+      font-weight: 460;
+      color: var(--color-midnight-wine);
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+
+    .trust-cell p {
+      font-size: 14px;
+      color: var(--color-stone-gray);
+    }
+
+    /* ============================================================
+       Product Suite Tabs & Features
+       ============================================================ */
+    .suite-section {
+      max-width: 1200px;
+      margin: 0 auto 96px;
+      padding: 0 24px;
+    }
+
+    .section-header {
+      text-align: center;
+      max-width: 680px;
+      margin: 0 auto 40px;
+    }
+
+    .section-tag {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-royal-violet);
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .section-title {
+      font-size: 40px;
+      font-weight: 460;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      color: var(--color-ink-charcoal);
+      margin-bottom: 12px;
+    }
+
+    .section-desc {
+      font-size: 16px;
+      color: var(--color-stone-gray);
+      line-height: 1.5;
+    }
+
+    /* Suite Tabs */
+    .suite-tabs-nav {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      background: var(--color-paper-white);
+      border: 1px solid var(--color-soft-mist);
+      border-radius: var(--radius-sm);
+      padding: 6px;
+      gap: 6px;
+      margin-bottom: 32px;
+    }
+
+    .tab-btn {
+      padding: 14px 18px;
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: var(--font-main);
+      font-size: 15px;
+      font-weight: 460;
+      color: var(--color-ink-charcoal);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      background: var(--color-warm-parchment);
+    }
+
+    .tab-btn.active {
+      background: var(--color-lilac-mist);
+      color: var(--color-midnight-wine);
+      font-weight: 600;
+    }
+
+    .tab-pane {
+      display: none;
+      background: var(--color-paper-white);
+      border: 1px solid var(--color-soft-mist);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      box-shadow: var(--shadow-subtle);
+    }
+
+    .tab-pane.active {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      align-items: center;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .tab-info h3 {
+      font-size: 26px;
+      font-weight: 460;
+      margin-bottom: 14px;
+      color: var(--color-ink-charcoal);
+    }
+
+    .tab-info p {
+      font-size: 16px;
+      color: var(--color-stone-gray);
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+
+    .feature-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .feature-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--color-ink-charcoal);
+    }
+
+    .feature-list svg {
+      color: var(--color-royal-violet);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .tab-card-preview {
+      background: var(--color-warm-parchment);
+      border: 1px solid var(--color-soft-mist);
+      border-radius: var(--radius-md);
+      padding: 24px;
+    }
+
+    .code-preview {
+      font-family: monospace;
+      font-size: 13px;
+      background: var(--color-paper-white);
+      padding: 16px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--color-soft-mist);
+      color: #333;
+      overflow-x: auto;
+      line-height: 1.4;
+    }
+
+    /* ============================================================
+       Dark Feature Band (Deep Lagoon #0c4243)
+       ============================================================ */
+    .dark-feature-band {
+      background-color: var(--color-deep-lagoon);
+      color: #ffffff;
+      padding: 96px 24px;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 96px;
+    }
+
+    .dark-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 56px;
+      align-items: center;
+    }
+
+    .dark-art-side {
+      position: relative;
+      display: flex;
+      justify-content: center;
+    }
+
+    .dark-art-card {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      width: 100%;
+      max-width: 440px;
+    }
+
+    .dark-art-card h4 {
+      font-size: 18px;
+      color: var(--color-lilac-mist);
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+
+    .dark-art-card .step {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .dark-art-card .step-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: var(--color-lilac-mist);
+      color: var(--color-deep-lagoon);
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+
+    .dark-text-side h2 {
+      font-size: 48px;
+      font-weight: 460;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin-bottom: 20px;
+    }
+
+    .dark-text-side p {
+      font-size: 17px;
+      line-height: 1.6;
+      color: rgba(255, 255, 255, 0.8);
+      margin-bottom: 28px;
+    }
+
+    .btn-dark-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background: transparent;
+      color: #ffffff;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      font-weight: 500;
+      transition: all 0.15s ease;
+    }
+
+    .btn-dark-cta:hover {
+      background: #ffffff;
+      color: var(--color-deep-lagoon);
+    }
+
+    /* ============================================================
+       Atmospheric Gradient Banner
+       ============================================================ */
+    .gradient-atmospheric-banner {
+      max-width: 1200px;
+      margin: 0 auto 96px;
+      padding: 0 24px;
+    }
+
+    .gradient-banner-card {
+      background: radial-gradient(circle at 20% 50%, rgba(212, 199, 255, 0.8), transparent 70%),
+        radial-gradient(circle at 80% 50%, rgba(113, 76, 182, 0.25), transparent 70%),
+        var(--color-paper-white);
+      border: 1px solid var(--color-soft-mist);
+      border-radius: var(--radius-lg);
+      padding: 64px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 32px;
+      box-shadow: var(--shadow-float);
+    }
+
+    .gradient-banner-text h2 {
+      font-size: 36px;
+      font-weight: 460;
+      letter-spacing: -0.02em;
+      color: var(--color-ink-charcoal);
+      margin-bottom: 8px;
+    }
+
+    .gradient-banner-text p {
+      font-size: 16px;
+      color: var(--color-stone-gray);
+      max-width: 540px;
+    }
+
+    /* ============================================================
+       Footer (Midnight Wine #421d24)
+       ============================================================ */
+    footer.site-footer {
+      background-color: var(--color-midnight-wine);
+      color: #ffffff;
+      padding: 64px 24px 40px;
+    }
+
+    .footer-inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1.5fr 1fr 1fr 1fr;
+      gap: 40px;
+      margin-bottom: 48px;
+    }
+
+    .footer-brand h3 {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--color-lilac-mist);
+      margin-bottom: 12px;
+    }
+
+    .footer-brand p {
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.7);
+      line-height: 1.5;
+      max-width: 320px;
+    }
+
+    .footer-col h4 {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #ffffff;
+      margin-bottom: 16px;
+    }
+
+    .footer-col ul {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .footer-col a {
+      font-size: 14px;
+      font-weight: 460;
+      color: rgba(255, 255, 255, 0.7);
+      transition: color 0.15s ease;
+    }
+
+    .footer-col a:hover {
+      color: var(--color-lilac-mist);
+    }
+
+    .footer-bottom {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding-top: 24px;
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+
+      .hero-grid,
+      .dark-inner,
+      .tab-pane.active {
+        grid-template-columns: 1fr;
+      }
+
+      .trust-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .trust-cell:nth-child(2) {
+        border-right: none;
+      }
+
+      .trust-cell:nth-child(1),
+      .trust-cell:nth-child(2) {
+        border-bottom: 1px solid var(--color-soft-mist);
+      }
+
+      .suite-tabs-nav {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .gradient-banner-card {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .footer-inner {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .nav-links {
+        display: none;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .hero-title {
+        font-size: 36px;
+      }
+
+      .trust-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .trust-cell {
+        border-right: none;
+        border-bottom: 1px solid var(--color-soft-mist);
+      }
+
+      .footer-inner {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Announcement Bar -->
+  <div class="announcement-banner">
+    <span class="badge">Nuevo</span>
+    <span>Arquitectura Multi-Tenant RAG aislada con soporte para WhatsApp Cloud API y Panel de Asesores en vivo.</span>
+    <a href="/agent/">Acceder al Panel →</a>
+  </div>
+
+  <!-- Sticky Translucent Header -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="brand-group" onclick="location.href='/'">
+        <div class="brand-icon">🤖</div>
+        <div class="brand-text">
+          <h1>Multi-Tenancy Bot</h1>
+          <span>AI Enterprise & Multi-Tenancy</span>
+        </div>
+      </div>
+
+      <ul class="nav-links">
+        <li><a href="#solucion">Plataforma</a></li>
+        <li><a href="#suite">Módulos</a></li>
+        <li><a href="#arquitectura">Arquitectura RAG</a></li>
+      </ul>
+
+      <div class="nav-actions">
+        <a href="/agent/" class="btn-primary">
+          Panel de Asesores
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 12h14" />
+            <path d="M12 5l7 7-7 7" />
+          </svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="hero-grid">
+      <div class="hero-content">
+        <div class="hero-pill">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+          </svg>
+          Multi-Tenancy Dinámico & RAG 2.0
+        </div>
+        <h1 class="hero-title">
+          Asistentes de IA para WhatsApp que <span class="accent">entienden tu negocio</span> sin margen de error.
+        </h1>
+        <p class="hero-description">
+          Automatiza la atención a clientes, cotización de seguros y resolución de pólizas con RAG fundamentado en
+          documentos PDF reales. Cada tenant cuenta con su base de conocimiento, tokens y agentes humanos asignados.
+        </p>
+
+        <div class="hero-cta-group">
+          <a href="/agent/" class="btn-primary">
+            Iniciar Sesión como Agente
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14" />
+              <path d="M12 5l7 7-7 7" />
+            </svg>
+          </a>
+          <a href="/admin/" class="btn-secondary">
+            Administrar Tenants & PDFs
+          </a>
+        </div>
+
+        <div class="hero-badges">
+          <div class="hero-badge-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <span>Cero Alucinaciones</span>
+          </div>
+          <div class="hero-badge-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <span>Handoff Humano en Vivo</span>
+          </div>
+          <div class="hero-badge-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            <span>ChromaDB Vector Store</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Floating Canvas Showcase -->
+      <div class="hero-showcase">
+        <div class="hero-canvas-card">
+          <div class="canvas-header">
+            <div class="chat-user-info">
+              <div class="chat-avatar">C</div>
+              <div>
+                <strong style="font-size:14px; display:block">Carlos Gómez</strong>
+                <span style="font-size:12px; color:var(--color-stone-gray)"><span
+                    class="chat-status-dot"></span>WhatsApp Cloud API</span>
+              </div>
+            </div>
+            <span class="tenant-badge-pill">Tenant: Seguros Salud</span>
+          </div>
+
+          <div class="chat-messages">
+            <div class="chat-msg customer">
+              Hola, ¿qué cubre la asistencia médica internacional en la póliza familiar y cuál es el deducible?
+            </div>
+            <div class="chat-msg bot">
+              ¡Hola Carlos! De acuerdo con las condiciones vigentes de tu póliza, la asistencia médica internacional
+              cubre emergencias hasta por $50,000 USD sin deducible en la red preferencial.
+              <div class="rag-citation-box">
+                <strong>Fuente RAG verificada:</strong> Poliza_Familiar_2026.pdf (Página 18, Cobertura Integral).
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="floating-lead-card">
+          <span class="lead-badge">LEAD CALIFICADO</span>
+          <div>
+            <b style="color:var(--color-ink-charcoal)">Vehículo Mazda CX-30 · 2024</b>
+            <div style="font-size:11px; color:var(--color-stone-gray)">Ticket #104 asignado al asesor</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Metrics / Trust Section -->
+  <section class="trust-section" id="solucion">
+    <div class="trust-grid">
+      <div class="trust-cell">
+        <h3>300/min</h3>
+        <p>Capacidad de ráfaga por tenant</p>
+      </div>
+      <div class="trust-cell">
+        <h3>100%</h3>
+        <p>Aislamiento de sesiones y RAG</p>
+      </div>
+      <div class="trust-cell">
+        <h3>
+          < 1.2s</h3>
+            <p>Tiempo de respuesta semántica</p>
+      </div>
+      <div class="trust-cell">
+        <h3>OAuth2</h3>
+        <p>Google Login & JWT para Agentes</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Product Suite Tabs -->
+  <section class="suite-section" id="suite">
+    <div class="section-header">
+      <span class="section-tag">Capacidades del Sistema</span>
+      <h2 class="section-title">Una suite completa para el control total de tus bots</h2>
+      <p class="section-desc">Diseñado para aislar la lógica de cada asesor o empresa en capas limpias y seguras.</p>
+    </div>
+
+    <!-- Tabs Nav -->
+    <div class="suite-tabs-nav">
+      <button class="tab-btn active" onclick="switchTab(0, this)">
+        🏢 Multi-Tenancy
+      </button>
+      <button class="tab-btn" onclick="switchTab(1, this)">
+        📄 RAG & Documentos
+      </button>
+      <button class="tab-btn" onclick="switchTab(2, this)">
+        💻 Panel de Asesores & Handoff
+      </button>
+      <button class="tab-btn" onclick="switchTab(3, this)">
+        🔐 Seguridad & Control
+      </button>
+    </div>
+
+    <!-- Tab Pane 0: Multi-tenancy -->
+    <div class="tab-pane active" id="tab-0">
+      <div class="tab-info">
+        <h3>Aislamiento Dinámico sin Reinicios</h3>
+        <p>
+          Configura múltiples asesores, números de teléfono de WhatsApp (Meta Phone ID), tokens propios y reglas
+          conversacionales en <code>tenants.json</code>. Los cambios aplican de inmediato en tiempo de ejecución.
+        </p>
+        <ul class="feature-list">
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            Enrutamiento automático según el número destinatario de Meta.
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            Tokens de acceso y claves cifradas con Fernet / AES-GCM.
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            Almacén de sesiones aislado con prefijo por tenant.
+          </li>
+        </ul>
+      </div>
+      <div class="tab-card-preview">
+        <div class="code-preview">
+          // tenants.json
+          {
+          "agente-seguros-norte": {
+          "name": "Seguros del Norte S.A.",
+          "phone_number_id": "104928374829102",
+          "advisor_notify_whatsapp": "573009876543",
+          "collection": "multitenancy_kb_norte",
+          "rag_temperature": 0.0,
+          "rag_top_k": 4,
+          "enabled": true
+          }
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Pane 1: RAG -->
+    <div class="tab-pane" id="tab-1">
+      <div class="tab-info">
+        <h3>Recuperación Aumentada con Verificación</h3>
+        <p>
+          Sube tus archivos PDF de condicionados, manuales de tarifas o reglamentos directamente desde el panel. El
+          sistema divide los documentos, genera embeddings vectoriales y cita la página exacta al responder.
+        </p>
+        <ul class="feature-list">
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            Umbral de similitud estricto para evitar alucinaciones.
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            ChromaDB embebido o remoto por cada cliente.
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            Re-ingestión automática con un solo clic.
+          </li>
+        </ul>
+      </div>
+      <div class="tab-card-preview">
+        <div style="background:#fff; border:1px solid var(--color-soft-mist); border-radius:8px; padding:16px;">
+          <b style="font-size:14px">📥 Ingestor de Documentos</b>
+          <p style="font-size:12px; color:var(--color-stone-gray); margin:4px 0 12px">Documentos activos en colección:
+          </p>
+          <div
+            style="font-size:13px; padding:8px; background:var(--color-warm-parchment); border-radius:6px; margin-bottom:6px">
+            📑 <strong>condicionado_general_autos.pdf</strong> · 42 fragmentos
+          </div>
+          <div style="font-size:13px; padding:8px; background:var(--color-warm-parchment); border-radius:6px">
+            📑 <strong>manual_asistencias_2026.pdf</strong> · 18 fragmentos
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Pane 2: Panel de Asesores -->
+    <div class="tab-pane" id="tab-2">
+      <div class="tab-info">
+        <h3>Panel de Asesores y Atención Humana</h3>
+        <p>
+          Cuando el cliente requiere un asesor o completa una cotización, el bot pausa automáticamente la IA y
+          transfiere el ticket al panel de asesores. Los asesores pueden responder directamente al WhatsApp del cliente.
+        </p>
+        <ul class="feature-list">
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            Reclamar, liberar y transferir tickets entre asesores.
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            Notas internas invisibles para el cliente.
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            Historial completo de la conversación con fuentes citadas.
+          </li>
+        </ul>
+        <a href="/agent/" class="btn-primary">Entrar al Panel de Asesores →</a>
+      </div>
+      <div class="tab-card-preview">
+        <div style="background:#fff; border:1px solid var(--color-soft-mist); border-radius:8px; padding:16px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <b style="font-size:13px">Ticket #842</b>
+            <span
+              style="font-size:11px; background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:999px; font-weight:700">Abierto</span>
+          </div>
+          <p style="font-size:13px; margin-bottom:8px"><strong>Asignado:</strong> diego.asesor@salud.co</p>
+          <div style="font-size:12px; color:var(--color-stone-gray)">Último mensaje: "El cliente solicita cotización
+            personalizada para flotilla".</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Pane 3: Seguridad -->
+    <div class="tab-pane" id="tab-3">
+      <div class="tab-info">
+        <h3>Protección de Extremo a Extremo</h3>
+        <p>
+          Validación estricta de firmas HMAC-SHA256 (<code>X-Hub-Signature-256</code> de Meta), Rate Limiter incorporado
+          contra ataques de denegación de servicio y autenticación robusta mediante tokens JWT y Google Sign-In.
+        </p>
+        <ul class="feature-list">
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            Sin filtración de datos entre diferentes tenants.
+          </li>
+          <li>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+            Respaldo seguro en SQLite / PostgreSQL con almacenamiento propio.
+          </li>
+        </ul>
+      </div>
+      <div class="tab-card-preview">
+        <div class="code-preview">
+          ✓ X-Hub-Signature-256: VALID (HMAC-SHA256)
+          ✓ Rate Limiter: 12 / 300 reqs (OK)
+          ✓ Tenant Guard: Session isolated
+          ✓ OAuth2 JWT: Verified (exp: 24h)
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Dark Feature Band (Deep Lagoon #0c4243) -->
+  <section class="dark-feature-band" id="arquitectura">
+    <div class="dark-inner">
+      <div class="dark-art-side">
+        <div class="dark-art-card">
+          <h4>Flujo de Ejecución en Tiempo Real</h4>
+          <div class="step">
+            <div class="step-num">1</div>
+            <div><strong>Meta Webhook:</strong> Recibe el mensaje encriptado y valida la firma SHA-256 en menos de 15ms.</div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div><strong>Tenant Resolution:</strong> Identifica el agente por el <code>phone_number_id</code> del destinatario.</div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div><strong>RAG Search:</strong> Consulta ChromaDB con filtros vectoriales y genera la respuesta con OpenAI.</div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div><strong>Human Handoff:</strong> Crea ticket en el sistema propio y notifica al WhatsApp del asesor si califica.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dark-text-side">
+        <h2>Arquitectura moderna, desacoplada y lista para escalar</h2>
+        <p>
+          Multi-Tenancy Bot separa el plano de control administrativo del motor de procesamiento de mensajes. Construido sobre
+          FastAPI y preparado para arquitecturas asíncronas de alto tráfico con máxima estabilidad y aislamiento total por cliente.
+        </p>
+        <a href="/agent/" class="btn-dark-cta">
+          Ir al Panel de Asesores
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14" />
+            <path d="M12 5l7 7-7 7" />
+          </svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Atmospheric Gradient CTA Banner -->
+  <section class="gradient-atmospheric-banner">
+    <div class="gradient-banner-card">
+      <div class="gradient-banner-text">
+        <h2>Comienza a potenciar tu atención por WhatsApp</h2>
+        <p>Ingresa al panel de asesores para gestionar conversaciones de clientes en tiempo real con asistencia de IA.</p>
+      </div>
+      <div style="display:flex; gap:12px; flex-wrap:wrap">
+        <a href="/agent/" class="btn-primary">
+          Ir al Panel de Asesores
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14" />
+            <path d="M12 5l7 7-7 7" />
+          </svg>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer (Midnight Wine #421d24) -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <h3>Multi-Tenancy Bot</h3>
+        <p>Plataforma de agentes conversacionales inteligentes con RAG y arquitectura multi-tenant para WhatsApp Cloud
+          API.</p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Plataforma</h4>
+        <ul>
+          <li><a href="/agent/">Panel de Asesores</a></li>
+          <li><a href="/health">Health Status</a></li>
+          <li><a href="/docs">Documentación OpenAPI</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Tecnología</h4>
+        <ul>
+          <li><a href="#">FastAPI Python 3.11</a></li>
+          <li><a href="#">ChromaDB Vector Store</a></li>
+          <li><a href="#">Meta WhatsApp Cloud API</a></li>
+          <li><a href="#">OpenAI GPT-4o RAG</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Seguridad</h4>
+        <ul>
+          <li><a href="#">OAuth2 Google Auth</a></li>
+          <li><a href="#">HMAC SHA-256 Webhook</a></li>
+          <li><a href="#">Aislamiento Multi-Tenant</a></li>
+          <li><a href="#">Cifrado Fernet</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>&copy; 2026 Multi-Tenancy Bot Platform. Todos los derechos reservados.</span>
+      <span>Diseñado con precisión.</span>
+    </div>
+  </footer>
+
+  <script>
+    function switchTab(index, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      const targetPane = document.getElementById('tab-' + index);
+      if (targetPane) targetPane.classList.add('active');
+    }
+  </script>
+</body>
+
+</html>

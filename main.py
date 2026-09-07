@@ -1,5 +1,5 @@
 """
-MultiBot — Agente conversacional para asesores de seguros (WhatsApp Cloud API)
+Multi-Tenancy Bot — Agente conversacional para asesores de seguros (WhatsApp Cloud API)
 ===============================================================================
 
 Fase 2: Configuración del Webhook con FastAPI.
@@ -35,8 +35,10 @@ import hmac
 import logging
 from contextlib import asynccontextmanager
 
+from pathlib import Path
+
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.admin import router as admin_router
@@ -88,7 +90,7 @@ app.include_router(agent_router)
 app.include_router(auth_router)
 
 # Panel web de administración (estático; los datos requieren la clave).
-app.mount("/admin", StaticFiles(directory="static", html=True), name="admin-ui")
+app.mount("/admin", StaticFiles(directory="static/admin", html=True), name="admin-ui")
 
 # Panel web de agentes (login con Google).
 app.mount("/agent", StaticFiles(directory="static/agent", html=True), name="agent-ui")
@@ -318,9 +320,18 @@ def _resolve_sender_name(contacts: list[Contact], wa_id: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Health check
+# Página principal & Health check
 # ---------------------------------------------------------------------------
-@app.get("/", tags=["health"])
+@app.get("/", response_class=HTMLResponse, tags=["web"])
+async def index() -> HTMLResponse:
+    """Sirve la página de inicio (Landing Page) del proyecto."""
+    landing_file = Path("static/landing.html")
+    if landing_file.exists():
+        return HTMLResponse(content=landing_file.read_text(encoding="utf-8"))
+    return HTMLResponse(content="<h1>Multi-Tenancy Bot Platform</h1>")
+
+
+@app.get("/health", tags=["health"])
 async def health() -> dict[str, str]:
     """Endpoint de salud para verificar que el servicio está vivo."""
     return {"status": "ok", "service": settings.app_name}

@@ -16,7 +16,7 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 
 def test_health_ok() -> None:
-    response = client.get("/")
+    response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok", "service": get_settings().app_name}
 
@@ -49,8 +49,9 @@ def test_webhook_verification_rejected() -> None:
     assert response.status_code == 403
 
 
-def test_webhook_receive_message() -> None:
+def test_webhook_receive_message(monkeypatch) -> None:
     """Un payload real de mensaje entrante debe procesarse con 200."""
+    monkeypatch.setattr("main.settings.webhook_app_secret", "")
     payload = json.loads(
         (FIXTURES / "webhook_message.json").read_text(encoding="utf-8")
     )
@@ -59,8 +60,9 @@ def test_webhook_receive_message() -> None:
     assert response.json() == {"status": "received"}
 
 
-def test_webhook_receive_unknown_object() -> None:
+def test_webhook_receive_unknown_object(monkeypatch) -> None:
     """Eventos de otros objetos (ej. 'page') se ignoran sin error."""
+    monkeypatch.setattr("main.settings.webhook_app_secret", "")
     response = client.post("/webhook", json={"object": "page", "entry": []})
     assert response.status_code == 200
     assert response.json() == {"status": "ignored"}

@@ -1,8 +1,6 @@
-"""Contrato común de los conectores CRM (ICrmAdapter).
+"""Contrato común para la gestión interna de tickets (ICrmAdapter).
 
-Todos los proveedores (Zendesk, HubSpot, Freshdesk, o el mock) implementan
-esta interfaz. El resto de la plataforma depende SOLO de `ICrmAdapter`, nunca
-de un proveedor concreto.
+Define la interfaz para la persistencia y atención de tickets en la plataforma.
 """
 
 from __future__ import annotations

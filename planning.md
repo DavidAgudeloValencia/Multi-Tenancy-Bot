@@ -12,7 +12,7 @@ Para que el agente sea verdaderamente útil, debe entender el día a día de un 
 ### 1.2. Mapeo de Casos de Uso (Flujos del Bot)
 
 **A. Flujo de Soporte y Asistencia (100% Automatizable)**
-*   *Siniestros de Auto:* "Me choqué", "Necesito grúa", "Me robaron el carro". El bot debe pedir ubicación, fotos básicas y entregar el número de siniestros de la aseguradora (ej. Sura, Allianz).
+*   *Siniestros de Auto:* "Me choqué", "Necesito grúa", "Me robaron el carro". El bot debe pedir ubicación, fotos básicas y entregar el número de siniestros de la aseguradora (ej. Salud, SegurosGo).
 *   *Asistencia en Salud:* "Cómo pido médico a domicilio", "Dónde descargo el carné", "Directorio médico". El bot consulta la base de conocimiento (RAG) y entrega links exactos o teléfonos.
 *   *Gestión Administrativa:* "Cómo pago mi cuota", "Necesito copia de la póliza". 
 

@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Multi-Tenancy Bot · Panel de Administración</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;460;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ============================================================
+       Tokens — DESIGN.md (Golden Hour Editorial Dashboard)
+       ============================================================ */
+    :root {
+      --color-midnight-wine: #421d24;
+      --color-royal-violet: #714cb6;
+      --color-lilac-mist: #d4c7ff;
+      --color-deep-lagoon: #0c4243;
+      --color-warm-parchment: #f2f0eb;
+      --color-soft-mist: #e3e3e2;
+      --color-ink-charcoal: #292827;
+      --color-stone-gray: #666666;
+      --color-paper-white: #ffffff;
+
+      --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-pill: 999px;
+
+      --shadow-subtle: 0 1px 3px rgba(41, 40, 39, 0.05);
+      --shadow-card: 0 4px 16px rgba(41, 40, 39, 0.06);
+      --shadow-modal: 0 20px 40px rgba(41, 40, 39, 0.15);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: var(--font-main);
+      background-color: var(--color-warm-parchment);
+      color: var(--color-ink-charcoal);
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* Layout general */
+    .layout { display: flex; min-height: 100vh; }
+
+    /* Sidebar */
+    .sidebar {
+      width: 260px;
+      background: var(--color-paper-white);
+      border-right: 1px solid var(--color-soft-mist);
+      display: flex;
+      flex-direction: column;
+      padding: 24px 16px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+    .sidebar .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 32px;
+      text-decoration: none;
+      color: inherit;
+    }
+    .sidebar .brand .logo {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      background: var(--color-midnight-wine);
+      color: var(--color-lilac-mist);
+      font-weight: 700;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+    }
+    .sidebar .brand h1 { font-size: 16px; font-weight: 600; line-height: 1.2; }
+    .sidebar .brand small { color: var(--color-stone-gray); font-size: 12px; }
+
+    .sidebar nav { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+    .sidebar nav a {
+      color: var(--color-ink-charcoal);
+      text-decoration: none;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-weight: 460;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: all 0.15s ease;
+    }
+    .sidebar nav a.active {
+      background: var(--color-lilac-mist);
+      color: var(--color-midnight-wine);
+      font-weight: 600;
+    }
+    .sidebar nav a:hover:not(.active) {
+      background: var(--color-warm-parchment);
+    }
+    .sidebar .status {
+      font-size: 12px;
+      color: var(--color-stone-gray);
+      padding: 16px 8px 0;
+      border-top: 1px solid var(--color-soft-mist);
+    }
+    .sidebar .status .dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      margin-right: 6px;
+    }
+
+    /* Content Area */
+    .content {
+      flex: 1;
+      padding: 24px 32px;
+      max-width: 1200px;
+    }
+
+    /* Topbar */
+    .topbar {
+      background: var(--color-paper-white);
+      border: 1px solid var(--color-soft-mist);
+      border-radius: var(--radius-lg);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      box-shadow: var(--shadow-subtle);
+      margin-bottom: 24px;
+    }
+    .topbar .titles h2 { font-size: 20px; font-weight: 460; letter-spacing: -0.01em; }
+    .topbar .titles p { color: var(--color-stone-gray); font-size: 13px; margin-top: 2px; }
+    .topbar .spacer { flex: 1; }
+
+    /* Inputs & Buttons */
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-stone-gray);
+      margin: 14px 0 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    input, textarea, select {
+      width: 100%;
+      background: var(--color-paper-white);
+      color: var(--color-ink-charcoal);
+      border: 1px solid var(--color-soft-mist);
+      border-radius: var(--radius-sm);
+      padding: 0 12px;
+      font: inherit;
+      height: 42px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+    textarea { height: auto; padding: 10px 12px; min-height: 80px; resize: vertical; }
+    input:focus, textarea:focus {
+      border-color: var(--color-midnight-wine);
+      box-shadow: 0 0 0 2px rgba(66, 29, 36, 0.1);
+    }
+
+    button {
+      font: inherit;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 0 16px;
+      height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn-primary {
+      background: var(--color-midnight-wine);
+      color: #ffffff;
+      border-radius: var(--radius-lg);
+    }
+    .btn-primary:hover { opacity: 0.92; transform: translateY(-1px); }
+    .btn-outline {
+      background: transparent;
+      color: var(--color-ink-charcoal);
+      border: 1px solid var(--color-soft-mist);
+    }
+    .btn-outline:hover { border-color: var(--color-ink-charcoal); }
+    .btn-ai {
+      background: var(--color-lilac-mist);
+      color: var(--color-midnight-wine);
+      border: 1px solid var(--color-midnight-wine);
+    }
+    .btn-ai:hover { background: #c5b5fe; }
+    .btn-danger {
+      background: #ef4444;
+      color: #fff;
+    }
+    .btn-ghost {
+      background: var(--color-warm-parchment);
+      color: var(--color-ink-charcoal);
+      border: 1px solid var(--color-soft-mist);
+    }
+    .btn-sm { height: 32px; padding: 0 10px; font-size: 12px; }
+
+    /* Cards */
+    .card {
+      background: var(--color-paper-white);
+      border: 1px solid var(--color-soft-mist);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      box-shadow: var(--shadow-subtle);
+    }
+    .card + .card { margin-top: 16px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
+
+    /* Agent Card */
+    .agent-card {
+      background: var(--color-paper-white);
+      border: 1px solid var(--color-soft-mist);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: var(--shadow-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      transition: all 0.15s ease;
+    }
+    .agent-card:hover {
+      box-shadow: var(--shadow-card);
+      border-color: var(--color-royal-violet);
+    }
+    .agent-card .head { display: flex; align-items: center; gap: 12px; }
+    .agent-card .avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: var(--color-lilac-mist);
+      color: var(--color-midnight-wine);
+      font-weight: 700;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .agent-card .head .name { font-size: 16px; font-weight: 600; color: var(--color-ink-charcoal); }
+    .agent-card .head .sub { color: var(--color-stone-gray); font-size: 12px; }
+    .agent-card .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .agent-card .meta .cell {
+      background: var(--color-warm-parchment);
+      border-radius: var(--radius-sm);
+      padding: 8px 10px;
+    }
+    .agent-card .meta .cell .k { font-size: 11px; color: var(--color-stone-gray); font-weight: 600; text-transform: uppercase; }
+    .agent-card .meta .cell .v { font-size: 13px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .agent-card .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto; padding-top: 10px; border-top: 1px solid var(--color-soft-mist); }
+
+    /* Chips */
+    .chip { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: var(--radius-pill); }
+    .chip.on { background: #dcfce7; color: #15803d; }
+    .chip.off { background: #fee2e2; color: #991b1b; }
+
+    /* Dropzone (PDFs) */
+    .dropzone {
+      border: 2px dashed var(--color-soft-mist);
+      border-radius: var(--radius-lg);
+      padding: 36px 20px;
+      text-align: center;
+      color: var(--color-stone-gray);
+      cursor: pointer;
+      background: var(--color-warm-parchment);
+      transition: all 0.15s ease;
+    }
+    .dropzone.dragover, .dropzone:hover {
+      border-color: var(--color-midnight-wine);
+      background: #faf8ff;
+    }
+    .dropzone svg { width: 44px; height: 44px; stroke: var(--color-midnight-wine); margin-bottom: 8px; }
+
+    /* Modal Backdrop */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(41, 40, 39, 0.4);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 16px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: var(--color-paper-white);
+      border: 1px solid var(--color-soft-mist);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-modal);
+      padding: 32px;
+      width: 100%;
+      max-width: 520px;
+    }
+    .modal h3 { font-size: 20px; font-weight: 460; margin-bottom: 4px; }
+    .modal .muted { color: var(--color-stone-gray); font-size: 13px; margin-bottom: 16px; }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--color-paper-white);
+      border: 1px solid var(--color-soft-mist);
+      box-shadow: var(--shadow-modal);
+      border-radius: var(--radius-sm);
+      padding: 12px 18px;
+      display: none;
+      font-size: 13px;
+      font-weight: 600;
+      z-index: 200;
+    }
+    .toast.error { border-color: #ef4444; color: #ef4444; }
+
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; }
+    @media (max-width: 800px) {
+      .two { grid-template-columns: 1fr; }
+      .layout { flex-direction: column; }
+      .sidebar { width: 100%; height: auto; position: static; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <a href="/" class="brand">
+        <div class="logo">🤖</div>
+        <div>
+          <h1>Multi-Tenancy Bot</h1>
+          <small>Admin · Multi-Tenant</small>
+        </div>
+      </a>
+      <nav>
+        <a href="#" class="active">📇 Tenants & Bots</a>
+        <a href="/agent/">💻 Panel de Asesores</a>
+        <a href="/" target="_blank">🌐 Ver Landing</a>
+      </nav>
+      <div class="status"><span class="dot"></span>API en línea</div>
+    </aside>
+
+    <main class="content">
+      <!-- Topbar -->
+      <div class="topbar">
+        <div class="titles">
+          <h2>Gestión de Tenants & Bots</h2>
+          <p>Configura asesores, números de Meta, colecciones ChromaDB y prompts</p>
+        </div>
+        <div class="spacer"></div>
+        <input id="key" type="password" placeholder="Clave X-Admin-Key" style="width:220px" />
+        <button class="btn-primary" id="connect">Conectar</button>
+        <button class="btn-ghost" id="disconnect" style="display:none">Salir</button>
+      </div>
+
+      <!-- Lista de Tenants -->
+      <section id="app" style="display:none">
+        <div class="card" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px">
+          <div>
+            <button class="btn-primary" id="newTenant">+ Nuevo Tenant</button>
+          </div>
+          <span style="color:var(--color-stone-gray); font-size:13px">
+            Los cambios se aplican al siguiente mensaje recibido en WhatsApp.
+          </span>
+        </div>
+        <div class="grid" id="tenants" style="margin-top:16px"></div>
+      </section>
+
+      <!-- Editor de Tenant -->
+      <section id="editor" style="display:none">
+        <div class="card">
+          <h2 id="editorTitle" style="font-size:22px; font-weight:460; margin-bottom:16px">Configuración del Tenant</h2>
+          <div class="two">
+            <div>
+              <label>ID (identificador único)</label>
+              <input id="f_id" placeholder="ej. juan-asesor" />
+              <label>Nombre visible</label>
+              <input id="f_name" placeholder="Juan Pérez - Asesor" />
+              <label>phone_number_id (Meta Cloud API)</label>
+              <input id="f_phone_number_id" placeholder="123456789012345" />
+              <label>Número WhatsApp (informativo)</label>
+              <input id="f_whatsapp_number" placeholder="573001234567" />
+              <label>Token de acceso propio (vacío = usa global)</label>
+              <input id="f_access_token" type="password" placeholder="•••• (opcional)" />
+              <label>WhatsApp del Asesor que recibe leads</label>
+              <input id="f_advisor_notify_whatsapp" placeholder="573001234567" />
+            </div>
+            <div>
+              <label>Colección ChromaDB (vacío = multitenancy_kb_{id})</label>
+              <input id="f_collection" placeholder="multitenancy_kb_juan" />
+              <label>Carpeta de PDFs (vacío = knowledge/{id})</label>
+              <input id="f_knowledge_dir" placeholder="knowledge/juan" />
+              <label>Modelo de OpenAI</label>
+              <input id="f_openai_model" placeholder="gpt-4o-mini" />
+              <label>Temperatura (0.0 = máxima precisión RAG)</label>
+              <input id="f_rag_temperature" type="number" step="0.1" placeholder="0.0" />
+              <label>Fragmentos RAG (top_k)</label>
+              <input id="f_rag_top_k" type="number" placeholder="4" />
+              <label>Umbral de relevancia (0.0 - 1.0)</label>
+              <input id="f_rag_score_threshold" type="number" step="0.05" placeholder="0.3" />
+              <label style="display:flex; align-items:center; gap:8px; margin-top:24px; text-transform:none; cursor:pointer">
+                <input id="f_enabled" type="checkbox" checked style="width:auto; height:auto" /> Tenant Habilitado
+              </label>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:20px; background:var(--color-warm-parchment); border-left:4px solid var(--color-royal-violet)">
+            <h3 style="font-size:16px; font-weight:600; margin-bottom:12px; color:var(--color-royal-violet)">✦ Personalización de Prompts y Respuestas IA</h3>
+            <label>Saludo inicial del bot</label>
+            <textarea id="f_greeting"></textarea>
+            <label>Respuesta de fallback (sin contexto documental)</label>
+            <textarea id="f_fallback_answer"></textarea>
+            <label>Respuesta de handoff a humano</label>
+            <textarea id="f_handoff_reply"></textarea>
+            <label>Respuesta al completar lead</label>
+            <textarea id="f_lead_done_reply"></textarea>
+            <label>Respuesta cuando ya está pausado (human_paused)</label>
+            <textarea id="f_human_paused_reply"></textarea>
+            <label>Preguntas de calificación de lead (JSON)</label>
+            <textarea id="f_lead_questions" style="min-height:100px">{}</textarea>
+          </div>
+
+          <div style="display:flex; gap:10px; margin-top:20px">
+            <button class="btn-primary" id="save">Guardar Cambios</button>
+            <button class="btn-ghost" id="cancel">Cancelar</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal de subida de PDFs -->
+  <div class="modal-backdrop" id="uploadModal">
+    <div class="modal">
+      <h3>Subir Documentos PDF</h3>
+      <p class="muted" id="uploadTenantLabel">Base de conocimiento del agente</p>
+      <div class="dropzone" id="dropzone">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 16V4m0 0l-4 4m4-4l4 4" /><path d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2" />
+        </svg>
+        <strong style="display:block; margin-bottom:4px; color:var(--color-ink-charcoal)">Arrastra tus PDFs aquí o haz clic</strong>
+        <span style="font-size:12px">Pólizas, condicionados, manuales · máx. 20 MB por archivo</span>
+        <input id="fileInput" type="file" accept=".pdf" multiple hidden />
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px">
+        <button class="btn-ghost" id="uploadCancel">Cancelar</button>
+        <button class="btn-primary" id="uploadSend" disabled>Subir e Ingestar</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+    const API = '/api/admin';
+    let KEY = localStorage.getItem('multibot_admin_key') || '';
+    let editingId = null;
+    let uploadTenantId = null;
+    let selectedFiles = [];
+
+    function toast(msg, isError) {
+      const t = $('toast');
+      t.textContent = msg;
+      t.className = 'toast' + (isError ? ' error' : '');
+      t.style.display = 'block';
+      clearTimeout(t._h);
+      t._h = setTimeout(() => (t.style.display = 'none'), 3000);
+    }
+
+    async function req(method, path, body, isForm) {
+      const headers = { 'X-Admin-Key': KEY };
+      if (!isForm) headers['Content-Type'] = 'application/json';
+      const res = await fetch(API + path, {
+        method,
+        headers,
+        body: isForm ? body : body ? JSON.stringify(body) : undefined,
+      });
+      if (res.status === 204) return null;
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || res.status);
+      return data;
+    }
+
+    function connected() {
+      $('connect').style.display = 'none';
+      $('disconnect').style.display = '';
+      $('app').style.display = '';
+      loadTenants();
+    }
+
+    const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const initials = name => (name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0].toUpperCase()).join('');
+
+    async function loadTenants() {
+      try {
+        const tenants = await req('GET', '/tenants');
+        const wrap = $('tenants');
+        wrap.innerHTML = '';
+        if (!tenants.length) {
+          wrap.innerHTML = '<div class="card" style="text-align:center; padding:40px; color:var(--color-stone-gray)">Aún no hay tenants registrados. Haz clic en “+ Nuevo Tenant”.</div>';
+          return;
+        }
+        tenants.forEach(t => {
+          const el = document.createElement('div');
+          el.className = 'agent-card';
+          const coll = t.collection || ('multibot_kb_' + t.id);
+          el.innerHTML = `
+            <div class="head">
+              <div class="avatar">${esc(initials(t.name || t.id))}</div>
+              <div>
+                <div class="name">${esc(t.name || t.id)}</div>
+                <div class="sub">${esc(t.whatsapp_number || '—')}</div>
+              </div>
+            </div>
+            <div class="meta">
+              <div class="cell"><div class="k">Colección</div><div class="v" title="${esc(coll)}">${esc(coll)}</div></div>
+              <div class="cell"><div class="k">Notificar Asesor</div><div class="v">${esc(t.advisor_notify_whatsapp || '—')}</div></div>
+              <div class="cell"><div class="k">Estado</div><div class="v"><span class="chip ${t.enabled ? 'on' : 'off'}">${t.enabled ? 'Activo' : 'Inactivo'}</span></div></div>
+              <div class="cell"><div class="k">Token</div><div class="v">${t.access_token_configured ? 'Propio' : 'Global'}</div></div>
+            </div>
+            <div class="actions">
+              <button class="btn-outline btn-sm" data-edit="${esc(t.id)}">Editar</button>
+              <button class="btn-ai btn-sm" data-upload="${esc(t.id)}">Subir PDFs</button>
+              <button class="btn-ghost btn-sm" data-ingest="${esc(t.id)}">Re-ingestar</button>
+              <button class="btn-danger btn-sm" data-del="${esc(t.id)}">Eliminar</button>
+            </div>`;
+          wrap.appendChild(el);
+        });
+        document.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => openEditor(b.dataset.edit));
+        document.querySelectorAll('[data-upload]').forEach(b => b.onclick = () => openUpload(b.dataset.upload));
+        document.querySelectorAll('[data-ingest]').forEach(b => b.onclick = () => ingest(b.dataset.ingest, b));
+        document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => delTenant(b.dataset.del));
+      } catch (err) {
+        toast('Error al listar tenants: ' + err.message, true);
+      }
+    }
+
+    async function openEditor(id) {
+      editingId = id;
+      $('editorTitle').textContent = id ? `Editar Tenant: ${id}` : 'Nuevo Tenant';
+      $('f_id').disabled = !!id;
+      if (!id) {
+        ['f_id','f_name','f_phone_number_id','f_whatsapp_number','f_access_token','f_advisor_notify_whatsapp','f_collection','f_knowledge_dir','f_openai_model','f_rag_temperature','f_rag_top_k','f_rag_score_threshold','f_greeting','f_fallback_answer','f_handoff_reply','f_lead_done_reply','f_human_paused_reply'].forEach(k => $(k).value = '');
+        $('f_lead_questions').value = '{}';
+        $('f_enabled').checked = true;
+      } else {
+        try {
+          const t = await req('GET', '/tenants/' + id);
+          $('f_id').value = t.id;
+          $('f_name').value = t.name || '';
+          $('f_phone_number_id').value = t.phone_number_id || '';
+          $('f_whatsapp_number').value = t.whatsapp_number || '';
+          $('f_access_token').value = '';
+          $('f_advisor_notify_whatsapp').value = t.advisor_notify_whatsapp || '';
+          $('f_collection').value = t.collection || '';
+          $('f_knowledge_dir').value = t.knowledge_dir || '';
+          $('f_openai_model').value = t.openai_model || '';
+          $('f_rag_temperature').value = t.rag_temperature ?? '';
+          $('f_rag_top_k').value = t.rag_top_k ?? '';
+          $('f_rag_score_threshold').value = t.rag_score_threshold ?? '';
+          $('f_enabled').checked = t.enabled;
+          const s = t.settings || {};
+          $('f_greeting').value = s.greeting || '';
+          $('f_fallback_answer').value = s.fallback_answer || '';
+          $('f_handoff_reply').value = s.handoff_reply || '';
+          $('f_lead_done_reply').value = s.lead_done_reply || '';
+          $('f_human_paused_reply').value = s.human_paused_reply || '';
+          $('f_lead_questions').value = JSON.stringify(s.lead_questions || {}, null, 2);
+        } catch (err) {
+          toast('Error al cargar tenant: ' + err.message, true);
+          return;
+        }
+      }
+      $('app').style.display = 'none';
+      $('editor').style.display = '';
+    }
+
+    function closeEditor() {
+      $('editor').style.display = 'none';
+      $('app').style.display = '';
+      editingId = null;
+    }
+
+    async function saveTenant() {
+      let lq = {};
+      try {
+        const raw = $('f_lead_questions').value.trim();
+        if (raw) lq = JSON.parse(raw);
+      } catch {
+        toast('El JSON de lead_questions no es válido', true);
+        return;
+      }
+      const payload = {
+        name: $('f_name').value.trim(),
+        phone_number_id: $('f_phone_number_id').value.trim() || undefined,
+        whatsapp_number: $('f_whatsapp_number').value.trim() || undefined,
+        advisor_notify_whatsapp: $('f_advisor_notify_whatsapp').value.trim() || undefined,
+        collection: $('f_collection').value.trim() || undefined,
+        knowledge_dir: $('f_knowledge_dir').value.trim() || undefined,
+        openai_model: $('f_openai_model').value.trim() || undefined,
+        rag_temperature: $('f_rag_temperature').value === '' ? undefined : parseFloat($('f_rag_temperature').value),
+        rag_top_k: $('f_rag_top_k').value === '' ? undefined : parseInt($('f_rag_top_k').value, 10),
+        rag_score_threshold: $('f_rag_score_threshold').value === '' ? undefined : parseFloat($('f_rag_score_threshold').value),
+        enabled: $('f_enabled').checked,
+        settings: {
+          greeting: $('f_greeting').value || undefined,
+          fallback_answer: $('f_fallback_answer').value || undefined,
+          handoff_reply: $('f_handoff_reply').value || undefined,
+          lead_done_reply: $('f_lead_done_reply').value || undefined,
+          human_paused_reply: $('f_human_paused_reply').value || undefined,
+          lead_questions: lq,
+        },
+      };
+      const tok = $('f_access_token').value.trim();
+      if (tok) payload.access_token = tok;
+
+      try {
+        if (!editingId) {
+          payload.id = $('f_id').value.trim();
+          if (!payload.id) { toast('El ID es obligatorio', true); return; }
+          await req('POST', '/tenants', payload);
+          toast('Tenant creado con éxito');
+        } else {
+          await req('PUT', '/tenants/' + editingId, payload);
+          toast('Tenant actualizado');
+        }
+        closeEditor();
+        loadTenants();
+      } catch (err) {
+        toast('Error al guardar: ' + err.message, true);
+      }
+    }
+
+    async function delTenant(id) {
+      if (!confirm(`¿Eliminar definitivamente el tenant "${id}"?`)) return;
+      try {
+        await req('DELETE', '/tenants/' + id);
+        toast(`Tenant "${id}" eliminado`);
+        loadTenants();
+      } catch (err) {
+        toast('Error al eliminar: ' + err.message, true);
+      }
+    }
+
+    async function ingest(id, btn) {
+      const orig = btn.textContent;
+      btn.textContent = 'Procesando...';
+      btn.disabled = true;
+      try {
+        const res = await req('POST', `/tenants/${id}/ingest`);
+        toast(`Ingestión completada: ${res.chunks_ingested} fragmentos (${res.files_processed.length} archivos)`);
+      } catch (err) {
+        toast('Error al ingestar: ' + err.message, true);
+      } finally {
+        btn.textContent = orig;
+        btn.disabled = false;
+      }
+    }
+
+    // Modal de carga
+    function openUpload(id) {
+      uploadTenantId = id;
+      selectedFiles = [];
+      $('fileInput').value = '';
+      $('uploadTenantLabel').textContent = `Base de conocimiento del tenant: ${id}`;
+      $('uploadSend').disabled = true;
+      $('uploadModal').classList.add('open');
+    }
+    function closeUpload() {
+      $('uploadModal').classList.remove('open');
+      uploadTenantId = null;
+    }
+
+    const drop = $('dropzone');
+    drop.onclick = () => $('fileInput').click();
+    drop.ondragover = e => { e.preventDefault(); drop.classList.add('dragover'); };
+    drop.ondragleave = () => drop.classList.remove('dragover');
+    drop.ondrop = e => {
+      e.preventDefault();
+      drop.classList.remove('dragover');
+      handleFiles(e.dataTransfer.files);
+    };
+    $('fileInput').onchange = e => handleFiles(e.target.files);
+
+    function handleFiles(files) {
+      selectedFiles = Array.from(files).filter(f => f.name.toLowerCase().endsWith('.pdf'));
+      if (!selectedFiles.length) {
+        toast('Solo se permiten archivos PDF', true);
+        $('uploadSend').disabled = true;
+        return;
+      }
+      $('uploadSend').disabled = false;
+      toast(`${selectedFiles.length} archivo(s) seleccionado(s)`);
+    }
+
+    async function sendUpload() {
+      if (!uploadTenantId || !selectedFiles.length) return;
+      const fd = new FormData();
+      selectedFiles.forEach(f => fd.append('files', f));
+      $('uploadSend').disabled = true;
+      $('uploadSend').textContent = 'Subiendo e ingestando...';
+      try {
+        const res = await req('POST', `/tenants/${uploadTenantId}/documents`, fd, true);
+        toast(`Éxito: ${res.files_uploaded.length} subidos, ${res.chunks_ingested} fragmentos en ChromaDB`);
+        closeUpload();
+      } catch (err) {
+        toast('Error al subir: ' + err.message, true);
+      } finally {
+        $('uploadSend').disabled = false;
+        $('uploadSend').textContent = 'Subir e Ingestar';
+      }
+    }
+
+    // Handlers
+    $('connect').onclick = () => {
+      const val = $('key').value.trim();
+      if (!val) { toast('Ingresa la clave X-Admin-Key', true); return; }
+      KEY = val;
+      localStorage.setItem('multibot_admin_key', KEY);
+      connected();
+    };
+    $('disconnect').onclick = () => {
+      KEY = '';
+      localStorage.removeItem('multibot_admin_key');
+      location.reload();
+    };
+    $('newTenant').onclick = () => openEditor(null);
+    $('save').onclick = saveTenant;
+    $('cancel').onclick = closeEditor;
+    $('uploadCancel').onclick = closeUpload;
+    $('uploadSend').onclick = sendUpload;
+
+    if (KEY) {
+      $('key').value = KEY;
+      connected();
+    }
+  </script>
+</body>
+</html>

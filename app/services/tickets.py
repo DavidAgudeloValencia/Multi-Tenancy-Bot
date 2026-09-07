@@ -30,8 +30,8 @@ _MOCK = MockCrmAdapter()
 def get_crm_adapter() -> ICrmAdapter:
     """Devuelve el backend de tickets según `CRM_PROVIDER`.
 
-    - "native" (por defecto): nuestro propio helpdesk (tablas propias).
-    - "mock": en memoria (demo/tests).
+    - "native" (por defecto): gestión interna propia (tablas de base de datos relacional).
+    - "mock": en memoria (desarrollo/tests).
     """
     provider = get_settings().crm_provider.lower()
     if provider in ("native", ""):

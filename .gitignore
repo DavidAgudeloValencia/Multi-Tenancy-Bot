@@ -8,6 +8,7 @@ venv/
 
 # --- Entorno / secretos ---
 .env
+.env.*
 
 # --- Datos generados ---
 data/

@@ -1,7 +1,6 @@
-"""Adaptador CRM en memoria (demo/desarrollo).
+"""Adaptador de tickets en memoria (desarrollo/tests).
 
-Implementa `ICrmAdapter` sin depender de un proveedor externo, para desarrollar
-y probar el flujo completo antes de conectar Zendesk/HubSpot/Freshdesk.
+Implementa `ICrmAdapter` para pruebas automatizadas y ejecución local sin base de datos.
 """
 
 from __future__ import annotations

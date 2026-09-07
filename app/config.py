@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     )
 
     # --- Aplicación ---
-    app_name: str = "MultiBot"
+    app_name: str = "Multi-Tenancy Bot"
     app_env: str = "development"
     log_level: str = "INFO"
 
@@ -75,7 +75,7 @@ class Settings(BaseSettings):
     # URL de la base de datos relacional (SQLAlchemy). SQLite para arrancar,
     # PostgreSQL en producción.
     database_url: str = "sqlite+aiosqlite:///./data/app.db"
-    # Backend de tickets: "native" (helpdesk propio, por defecto) o "mock" (demo).
+    # Backend de tickets propio (almacenamiento y gestión interna).
     crm_provider: str = "native"
     # Si True, el webhook crea/actualiza tickets por cada mensaje.
     crm_enabled: bool = False
