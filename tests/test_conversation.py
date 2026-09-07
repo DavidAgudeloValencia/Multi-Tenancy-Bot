@@ -156,6 +156,29 @@ async def test_humano_intent_handoff(make_manager) -> None:
     ctx = make_manager(["humano"])
     reply = await ctx.manager.handle_message("573001111111", "Quiero hablar con alguien")
     assert reply == HANDOFF_REPLY
+    session = await ctx.manager.get_session("573001111111")
+    assert session["state"] == "human_paused"
+    assert session["handoff_reason"] == "humano"
+
+
+async def test_lead_complete_sets_handoff_reason(make_manager) -> None:
+    ctx = make_manager(["venta"])
+    m = ctx.manager
+    await m.handle_message("w", "Quiero cotizar")
+    await m.handle_message("w", "Moto")
+    await m.handle_message("w", "Yamaha")
+    await m.handle_message("w", "2023")
+    await m.handle_message("w", "Medellín")
+
+    session = await m.get_session("w")
+    assert session["state"] == "human_paused"
+    assert session["handoff_reason"] == "lead_calificado"
+    assert session["lead"] == {
+        "tipo": "Moto",
+        "marca_modelo": "Yamaha",
+        "anio": "2023",
+        "ciudad": "Medellín",
+    }
 
 
 async def test_memory_session_store_roundtrip_and_expiry() -> None:

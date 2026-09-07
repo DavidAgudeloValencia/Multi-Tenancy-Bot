@@ -185,6 +185,7 @@ class ConversationManager:
             # Cuestionario completado: calificar y notificar al asesor.
             await self._notifier.notify_lead(wa_id, lead)
             session["state"] = "human_paused"
+            session["handoff_reason"] = "lead_calificado"
             await self._sessions.set(wa_id, session)
             return self._bs.lead_done_reply
 
@@ -198,8 +199,14 @@ class ConversationManager:
         lead = session.get("lead", {})
         await self._notifier.notify_lead(wa_id, lead, partial=True)
         session["state"] = "human_paused"
+        session["handoff_reason"] = "humano"
         await self._sessions.set(wa_id, session)
         return self._bs.handoff_reply
+
+    # ------------------------------------------------------------------
+    async def get_session(self, wa_id: str) -> dict:
+        """Devuelve la sesión completa del cliente (estado, lead, razón de handoff)."""
+        return await self._sessions.get(wa_id) or {}
 
 
 # Singleton del orquestador para toda la app.

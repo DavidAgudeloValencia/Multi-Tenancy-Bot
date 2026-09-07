@@ -187,6 +187,33 @@ class HelpdeskService:
             await session.commit()
             return _ticket_dict(ticket)
 
+    async def mark_pending(
+        self, tenant_id: str, conversation_id: str, note: str
+    ) -> dict | None:
+        """Marca el ticket como pendiente de humano y deja una nota de contexto.
+
+        Usado en el handoff bot→humano. Devuelve None si no existe ticket.
+        """
+        async with self._sf() as session:
+            ticket = (
+                await session.execute(
+                    select(Ticket).where(
+                        Ticket.tenant_id == tenant_id,
+                        Ticket.conversation_id == conversation_id,
+                    )
+                )
+            ).scalar_one_or_none()
+            if ticket is None:
+                return None
+            ticket.status = "pending"
+            session.add(TicketNote(ticket_id=ticket.id, author="bot", body=note))
+            await session.commit()
+            logger.info(
+                "Ticket %s marcado como pendiente (handoff) en %s/%s",
+                ticket.id, tenant_id, conversation_id,
+            )
+            return _ticket_dict(ticket)
+
     async def add_note(
         self, tenant_id: str, ticket_id: str, note: str, author: str
     ) -> dict:

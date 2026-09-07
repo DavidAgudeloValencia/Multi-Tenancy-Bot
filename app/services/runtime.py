@@ -77,6 +77,10 @@ class TenantRuntime:
         """Procesa un mensaje con la configuración de este tenant."""
         return await self.conversation.handle_message(wa_id, text)
 
+    async def get_session(self, wa_id: str) -> dict:
+        """Devuelve la sesión completa del cliente (estado, lead, handoff)."""
+        return await self.conversation.get_session(wa_id)
+
 
 _runtimes: dict[str, TenantRuntime] = {}
 

@@ -244,7 +244,29 @@ async def handle_incoming_message(message: Message, value: ChangeValue) -> None:
 
     # 2) Atender con el runtime del agente (RAG, sesión y asesor propios).
     runtime = get_tenant_runtime(tenant)
+    state_before = (await runtime.get_session(wa_id)).get("state", "idle")
     reply = await runtime.handle_message(wa_id, text)
+    state_after = (await runtime.get_session(wa_id)).get("state", "idle")
+
+    # 2.5) Handoff bot→humano: marcar el ticket como pendiente.
+    if (
+        settings.crm_enabled
+        and state_before != "human_paused"
+        and state_after == "human_paused"
+    ):
+        from app.services.helpdesk import get_helpdesk_service
+
+        try:
+            session = await runtime.get_session(wa_id)
+            reason = session.get("handoff_reason", "humano")
+            lead = session.get("lead") or {}
+            note = f"Handoff bot→humano ({reason}). Perfil: {lead}" if lead else (
+                f"Handoff bot→humano ({reason})"
+            )
+            await get_helpdesk_service().mark_pending(tenant.id, wa_id, note)
+            logger.info("Ticket marcado pendiente por handoff en %s/%s", tenant.id, wa_id)
+        except Exception as exc:  # noqa: BLE001
+            logger.error("No se pudo marcar el ticket pendiente: %s", exc)
 
     # 3) Responder DESDE el número del agente.
     try:

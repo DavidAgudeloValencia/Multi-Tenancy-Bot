@@ -119,3 +119,18 @@ async def test_reply_sends_and_records(hd, monkeypatch) -> None:
     detail = await service.get_detail("t1", ticket["ticket_id"])
     assert detail["messages"][-1]["direction"] == "out"
     assert detail["messages"][-1]["body"] == "Ya lo reviso, un momento"
+
+
+async def test_mark_pending_on_handoff(hd) -> None:
+    service, ticketing, factory, _ = hd
+    await _make_ticket(ticketing)  # crea ticket + mapping
+
+    result = await service.mark_pending(
+        "t1", "573001234567", "Handoff bot→humano (humano). Perfil: {}"
+    )
+    assert result is not None
+    assert result["status"] == "pending"
+
+    detail = await service.get_detail("t1", result["ticket_id"])
+    assert detail["status"] == "pending"
+    assert any("Handoff bot→humano" in n["body"] for n in detail["notes"])
