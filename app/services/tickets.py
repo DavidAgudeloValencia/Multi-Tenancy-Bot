@@ -17,24 +17,28 @@ from sqlalchemy import select
 from app.config import get_settings
 from app.crm.base import ICrmAdapter, TicketMeta
 from app.crm.mock import MockCrmAdapter
+from app.crm.native import NativeCrmAdapter
 from app.db import get_session_factory
 from app.models import ConversationMessage, TicketMapping, _utcnow
 
 logger = logging.getLogger("multibot.tickets")
 
-# Singleton del adaptador mock (conserva estado por proceso en demo/tests).
+# Singleton del adaptador mock (solo demo/tests).
 _MOCK = MockCrmAdapter()
 
 
 def get_crm_adapter() -> ICrmAdapter:
-    """Devuelve el adaptador CRM según `CRM_PROVIDER` (mock | zendesk | ...)."""
+    """Devuelve el backend de tickets según `CRM_PROVIDER`.
+
+    - "native" (por defecto): nuestro propio helpdesk (tablas propias).
+    - "mock": en memoria (demo/tests).
+    """
     provider = get_settings().crm_provider.lower()
+    if provider in ("native", ""):
+        return NativeCrmAdapter(get_session_factory())
     if provider == "mock":
         return _MOCK
-    if provider in ("zendesk", "hubspot", "freshdesk"):
-        # Sprint 1: aquí se instancian los adaptadores reales.
-        raise NotImplementedError(f"Adaptador '{provider}' aún no implementado")
-    raise ValueError(f"Proveedor CRM desconocido: '{provider}'")
+    raise ValueError(f"Proveedor de tickets desconocido: '{provider}' (usa 'native')")
 
 
 class TicketingService:

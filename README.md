@@ -88,7 +88,7 @@ pytest -q      # 44 tests (webhook, RAG, conversación, envío, multi-tenant, se
 | `ADMIN_API_KEY` | Clave del panel de administración |
 | `WEBHOOK_APP_SECRET` | App Secret de Meta (firma del webhook) |
 | `DATABASE_URL` | Base relacional (SQLite dev · PostgreSQL prod) |
-| `CRM_PROVIDER` | `mock` \| `zendesk` \| `hubspot` \| `freshdesk` |
+| `CRM_PROVIDER` | `native` (helpdesk propio) \| `mock` (demo) |
 | `CRM_ENABLED` | `true` para sincronizar webhook → tickets |
 
 > `.env` contiene secretos y **no se versiona**.
@@ -103,7 +103,7 @@ app/
   models.py             # TicketMapping, ConversationMessage
   api/admin.py          # API del panel (autenticada)
   core/                 # logging, session (Memory/Redis), ratelimit
-  crm/                  # ICrmAdapter (base) + mock (zendesk/hubspot/freshdesk: Sprint 1)
+  crm/                  # ICrmAdapter (base) + native (helpdesk propio) + mock (demo)
   schemas/              # Pydantic: payload de Meta, datos del panel
   services/             # whatsapp, ingestion, rag, router, conversation,
                         # notifier, tenants, runtime, tickets
@@ -153,19 +153,20 @@ aislados por agente automáticamente.
 
 Panel web: `GET /admin/`.
 
-## Plataforma de atención (CRM / tickets)
+## Plataforma de atención (helpdesk propio)
 
-Sprint 0 disponible: sincronización de conversaciones con tickets mediante un
-**contrato `ICrmAdapter`** (`create_ticket`, `update_ticket`, `add_internal_note`,
-`assign_agent`, `search_tickets`) y persistencia del mapping
-`conversación ↔ ticket ↔ tenant` en SQLAlchemy (SQLite en dev, PostgreSQL en
-producción).
+Sprint 0 disponible: **helpdesk nativo** (sin CRMs externos) con tickets,
+notas internas, asignación y estados propios, sincronizado con WhatsApp.
 
-- `CRM_PROVIDER=mock` → adaptador en memoria para desarrollar/demostrar.
+- `CRM_PROVIDER=native` → tickets en nuestras tablas (`tickets`, `ticket_notes`,
+  `ticket_mappings`, `conversation_messages`).
 - `CRM_ENABLED=true` → el webhook crea el ticket al primer mensaje, lo
   actualiza en los siguientes y guarda el histórico (entrada/salida).
-- Los adaptadores reales (Zendesk/HubSpot/Freshdesk) se añaden sobre el mismo
-  contrato en el Sprint 1, sin tocar el resto del flujo.
+- El contrato `ICrmAdapter` define la funcionalidad (referencia de lo que hacen
+  Zendesk/Freshdesk: assignee, estado, prioridad, notas), implementada por
+  `NativeCrmAdapter` sobre nuestro propio backend.
+- **En camino:** panel de agentes (claim/transfer/notas), login con Google,
+  reglas de enrutamiento y métricas por tenant.
 
 ## Seguridad
 

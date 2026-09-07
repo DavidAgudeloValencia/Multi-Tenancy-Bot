@@ -75,9 +75,9 @@ class Settings(BaseSettings):
     # URL de la base de datos relacional (SQLAlchemy). SQLite para arrancar,
     # PostgreSQL en producción.
     database_url: str = "sqlite+aiosqlite:///./data/app.db"
-    # Proveedor de CRM: "mock" (demo), "zendesk", "hubspot" o "freshdesk".
-    crm_provider: str = "mock"
-    # Si True, el webhook crea/actualiza tickets en el CRM por cada mensaje.
+    # Backend de tickets: "native" (helpdesk propio, por defecto) o "mock" (demo).
+    crm_provider: str = "native"
+    # Si True, el webhook crea/actualiza tickets por cada mensaje.
     crm_enabled: bool = False
 
     @property
